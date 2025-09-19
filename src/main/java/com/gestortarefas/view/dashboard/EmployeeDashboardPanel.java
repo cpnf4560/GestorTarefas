@@ -1,0 +1,264 @@
+package com.gestortarefas.view.dashboard;
+
+import com.gestortarefas.util.RestApiClient;
+
+import javax.swing.*;
+import java.awt.*;
+import java.util.Map;
+
+/**
+ * Dashboard específico para funcionários
+ */
+public class EmployeeDashboardPanel extends DashboardBasePanel {
+    
+    private JLabel userInfoLabel;
+    private JPanel userPanel;
+    
+    public EmployeeDashboardPanel(Long userId) {
+        super(userId);
+        initializeEmployeeComponents();
+        loadEmployeeData();
+    }
+    
+    private void initializeEmployeeComponents() {
+        // Painel de informações do utilizador
+        userPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        userInfoLabel = new JLabel("Carregando informações do utilizador...");
+        userInfoLabel.setFont(userInfoLabel.getFont().deriveFont(Font.BOLD, 14f));
+        userPanel.add(new JLabel("Funcionário: "));
+        userPanel.add(userInfoLabel);
+        
+        // Adicionar ao topo
+        add(userPanel, BorderLayout.NORTH);
+        remove(statsPanel);
+        
+        // Reorganizar layout
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.add(userPanel, BorderLayout.NORTH);
+        topPanel.add(statsPanel, BorderLayout.CENTER);
+        
+        add(topPanel, BorderLayout.NORTH);
+        
+        // Personalizar título das colunas para funcionário
+        updateColumnTitles();
+    }
+    
+    private void updateColumnTitles() {
+        // Atualizar bordas com cores específicas para funcionário
+        pendingPanel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(new Color(255, 140, 0), 2), 
+            "MINHAS PENDENTES"));
+        
+        todayPanel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(Color.BLUE, 2), 
+            "PARA HOJE"));
+        
+        overduePanel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(Color.RED, 2), 
+            "ATRASADAS"));
+        
+        completedPanel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(new Color(34, 139, 34), 2), 
+            "CONCLUÍDAS"));
+    }
+    
+    @Override
+    protected void refreshDashboard() {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                Map<String, Object> dashboardData = apiClient.getEmployeeDashboard(currentUserId);
+                if (dashboardData != null) {
+                    updateTaskLists(dashboardData);
+                    updateUserInfo(dashboardData);
+                } else {
+                    showErrorMessage("Erro ao carregar dashboard do funcionário");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                showErrorMessage("Erro de conexão: " + e.getMessage());
+            }
+        });
+    }
+    
+    private void loadEmployeeData() {
+        // Carregar dados iniciais
+        refreshDashboard();
+    }
+    
+    private void updateUserInfo(Map<String, Object> dashboardData) {
+        Map<String, Object> user = (Map<String, Object>) dashboardData.get("user");
+        if (user != null) {
+            String username = (String) user.get("username");
+            String email = (String) user.get("email");
+            userInfoLabel.setText(username + " (" + email + ")");
+        }
+    }
+    
+    private void showErrorMessage(String message) {
+        SwingUtilities.invokeLater(() -> {
+            userInfoLabel.setText("Erro ao carregar dados");
+            JOptionPane.showMessageDialog(this, message, "Erro", JOptionPane.ERROR_MESSAGE);
+        });
+    }
+    
+    /**
+     * Adiciona funcionalidades específicas do funcionário
+     */
+    public void addEmployeeSpecificFeatures() {
+        // Botão para criar nova tarefa pessoal
+        JPanel bottomPanel = (JPanel) ((BorderLayout) getLayout()).getLayoutComponent(BorderLayout.SOUTH);
+        
+        JButton newTaskButton = new JButton("Nova Tarefa Pessoal");
+        newTaskButton.setBackground(new Color(70, 130, 180));
+        newTaskButton.setForeground(Color.WHITE);
+        newTaskButton.addActionListener(e -> openNewTaskDialog());
+        
+        bottomPanel.add(newTaskButton);
+        
+        // Botão para ver perfil
+        JButton profileButton = new JButton("Meu Perfil");
+        profileButton.setBackground(new Color(34, 139, 34));
+        profileButton.setForeground(Color.WHITE);
+        profileButton.addActionListener(e -> openProfileDialog());
+        
+        bottomPanel.add(profileButton);
+    }
+    
+    private void openNewTaskDialog() {
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Nova Tarefa", true);
+        dialog.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        
+        // Campos do formulário
+        JTextField titleField = new JTextField(20);
+        JTextArea descArea = new JTextArea(4, 20);
+        descArea.setWrapStyleWord(true);
+        descArea.setLineWrap(true);
+        
+        JComboBox<String> priorityCombo = new JComboBox<>(new String[]{"BAIXA", "NORMAL", "ALTA", "URGENTE"});
+        priorityCombo.setSelectedItem("NORMAL");
+        
+        // Layout do formulário
+        gbc.gridx = 0; gbc.gridy = 0;
+        dialog.add(new JLabel("Título:"), gbc);
+        gbc.gridx = 1;
+        dialog.add(titleField, gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 1;
+        dialog.add(new JLabel("Descrição:"), gbc);
+        gbc.gridx = 1;
+        dialog.add(new JScrollPane(descArea), gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 2;
+        dialog.add(new JLabel("Prioridade:"), gbc);
+        gbc.gridx = 1;
+        dialog.add(priorityCombo, gbc);
+        
+        // Botões
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        JButton saveButton = new JButton("Criar");
+        JButton cancelButton = new JButton("Cancelar");
+        
+        saveButton.addActionListener(e -> {
+            if (titleField.getText().trim().isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "Título é obrigatório!", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            // Aqui deveria chamar a API para criar a tarefa
+            // Por enquanto, apenas fecha o diálogo
+            dialog.dispose();
+            refreshDashboard();
+            JOptionPane.showMessageDialog(this, "Tarefa criada com sucesso!");
+        });
+        
+        cancelButton.addActionListener(e -> dialog.dispose());
+        
+        buttonPanel.add(saveButton);
+        buttonPanel.add(cancelButton);
+        
+        gbc.gridx = 0; gbc.gridy = 3;
+        gbc.gridwidth = 2;
+        dialog.add(buttonPanel, gbc);
+        
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+    
+    private void openProfileDialog() {
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Meu Perfil", true);
+        dialog.setSize(400, 300);
+        dialog.setLayout(new BorderLayout());
+        
+        // Painel de informações
+        JPanel infoPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.anchor = GridBagConstraints.WEST;
+        
+        // Buscar informações do perfil via API
+        Map<String, Object> profile = apiClient.getUserProfile(currentUserId);
+        
+        if (profile != null) {
+            gbc.gridx = 0; gbc.gridy = 0;
+            infoPanel.add(new JLabel("ID:"), gbc);
+            gbc.gridx = 1;
+            infoPanel.add(new JLabel(profile.get("id").toString()), gbc);
+            
+            // Adicionar mais campos conforme necessário
+        } else {
+            infoPanel.add(new JLabel("Erro ao carregar perfil"));
+        }
+        
+        dialog.add(infoPanel, BorderLayout.CENTER);
+        
+        // Botão fechar
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        JButton closeButton = new JButton("Fechar");
+        closeButton.addActionListener(e -> dialog.dispose());
+        buttonPanel.add(closeButton);
+        
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+    
+    /**
+     * Método para notificações específicas do funcionário
+     */
+    public void showEmployeeNotifications() {
+        SwingUtilities.invokeLater(() -> {
+            Map<String, Object> dashboardData = apiClient.getEmployeeDashboard(currentUserId);
+            if (dashboardData != null) {
+                Map<String, Object> stats = (Map<String, Object>) dashboardData.get("stats");
+                if (stats != null) {
+                    int overdueCount = getIntValue(stats, "overdueCount");
+                    int todayCount = getIntValue(stats, "todayCount");
+                    
+                    if (overdueCount > 0) {
+                        JOptionPane.showMessageDialog(this,
+                            "Atenção: Você tem " + overdueCount + " tarefa(s) em atraso!",
+                            "Tarefas em Atraso",
+                            JOptionPane.WARNING_MESSAGE);
+                    } else if (todayCount > 0) {
+                        JOptionPane.showMessageDialog(this,
+                            "Você tem " + todayCount + " tarefa(s) para hoje.",
+                            "Tarefas para Hoje",
+                            JOptionPane.INFORMATION_MESSAGE);
+                    }
+                }
+            }
+        });
+    }
+    
+    private int getIntValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        return 0;
+    }
+}
