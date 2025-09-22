@@ -1,6 +1,6 @@
 package com.gestortarefas.view.dashboard;
 
-import com.gestortarefas.util.RestApiClient;
+import com.gestortarefas.view.dialog.AssignTaskDialog;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -213,16 +213,22 @@ public class ManagerDashboardPanel extends DashboardBasePanel {
     protected void refreshDashboard() {
         SwingUtilities.invokeLater(() -> {
             try {
+                System.out.println("ManagerDashboard: Carregando dashboard para userId: " + currentUserId);
                 Map<String, Object> dashboardData = apiClient.getManagerDashboard(currentUserId);
                 
                 if (dashboardData != null) {
+                    System.out.println("ManagerDashboard: Dados recebidos com sucesso");
+                    System.out.println("ManagerDashboard: Keys no dashboardData: " + dashboardData.keySet());
+                    
                     updateTaskLists(dashboardData);
                     updateManagerInfo(dashboardData);
                 } else {
-                    showErrorMessage("Erro ao carregar dashboard do gestor");
+                    System.err.println("ManagerDashboard: Dados null recebidos da API");
+                    showErrorMessage("Erro ao carregar dashboard do gestor - dados vazios");
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                System.err.println("ManagerDashboard: Erro na chamada da API: " + e.getMessage());
                 showErrorMessage("Erro de conexão: " + e.getMessage());
             }
         });
@@ -238,25 +244,33 @@ public class ManagerDashboardPanel extends DashboardBasePanel {
     private void loadManagedTeams() {
         SwingUtilities.invokeLater(() -> {
             try {
+                System.out.println("ManagerDashboard: Carregando equipas para managerId: " + currentUserId);
                 List<Map<String, Object>> teams = apiClient.getManagedTeams(currentUserId);
                 teamSelector.removeAllItems();
                 
                 if (teams != null && !teams.isEmpty()) {
+                    System.out.println("ManagerDashboard: " + teams.size() + " equipas encontradas");
                     for (Map<String, Object> team : teams) {
                         Long id = ((Number) team.get("id")).longValue();
                         String name = (String) team.get("name");
                         teamSelector.addItem(new TeamComboItem(id, name));
+                        System.out.println("ManagerDashboard: Equipa adicionada: " + name + " (ID: " + id + ")");
                     }
                     
                     // Selecionar primeira equipa por padrão
                     if (teamSelector.getItemCount() > 0) {
                         TeamComboItem firstTeam = teamSelector.getItemAt(0);
                         selectedTeamId = firstTeam.getId();
+                        System.out.println("ManagerDashboard: Equipa selecionada por padrão: " + selectedTeamId);
                         loadTeamMembers();
                     }
+                } else {
+                    System.out.println("ManagerDashboard: Nenhuma equipa encontrada para o gestor");
+                    managerInfoLabel.setText("Nenhuma equipa atribuída");
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                System.err.println("ManagerDashboard: Erro ao carregar equipas: " + e.getMessage());
                 showErrorMessage("Erro ao carregar equipas: " + e.getMessage());
             }
         });
@@ -304,12 +318,32 @@ public class ManagerDashboardPanel extends DashboardBasePanel {
         return String.format("%.1f%%", rate);
     }
     
+    @SuppressWarnings("unchecked")
     private void updateManagerInfo(Map<String, Object> dashboardData) {
-        Map<String, Object> manager = (Map<String, Object>) dashboardData.get("manager");
-        if (manager != null) {
-            String username = (String) manager.get("username");
-            String email = (String) manager.get("email");
-            managerInfoLabel.setText(username + " (" + email + ")");
+        try {
+            Object managerObj = dashboardData.get("manager");
+            if (managerObj instanceof Map) {
+                Map<String, Object> manager = (Map<String, Object>) managerObj;
+                String username = (String) manager.get("username");
+                String email = (String) manager.get("email");
+                if (username != null) {
+                    managerInfoLabel.setText(username + (email != null ? " (" + email + ")" : ""));
+                }
+            } else {
+                // Fallback: usar informações básicas se disponíveis
+                Object userObj = dashboardData.get("user");
+                if (userObj instanceof Map) {
+                    Map<String, Object> user = (Map<String, Object>) userObj;
+                    String username = (String) user.get("username");
+                    String email = (String) user.get("email");
+                    if (username != null) {
+                        managerInfoLabel.setText(username + (email != null ? " (" + email + ")" : ""));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("ManagerDashboard: Erro ao atualizar info do gestor: " + e.getMessage());
+            managerInfoLabel.setText("Informações do gestor não disponíveis");
         }
     }
     
@@ -352,8 +386,34 @@ public class ManagerDashboardPanel extends DashboardBasePanel {
     }
     
     private void openAssignTaskDialog() {
-        JOptionPane.showMessageDialog(this, "Diálogo de Atribuição de Tarefa - Implementar", 
-            "Atribuir Tarefa", JOptionPane.INFORMATION_MESSAGE);
+        if (selectedTeamId == null) {
+            JOptionPane.showMessageDialog(this, 
+                "Selecione uma equipa primeiro para atribuir tarefas!", 
+                "Aviso", 
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        try {
+            AssignTaskDialog dialog = new AssignTaskDialog(
+                (Frame) SwingUtilities.getWindowAncestor(this), 
+                currentUserId, 
+                selectedTeamId
+            );
+            dialog.setVisible(true);
+            
+            if (dialog.isTaskCreated()) {
+                // Atualizar dashboard após criar tarefa
+                refreshDashboard();
+                loadTeamMembers();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, 
+                "Erro ao abrir diálogo de atribuição: " + e.getMessage(), 
+                "Erro", 
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     private void openTeamManagementDialog() {

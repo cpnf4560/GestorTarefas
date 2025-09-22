@@ -4,8 +4,6 @@ import com.gestortarefas.util.HttpUtil;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.net.http.HttpResponse;
 import java.util.HashMap;
 import java.util.Map;
@@ -150,27 +148,12 @@ public class LoginFrame extends JFrame {
     }
 
     private void setupEventListeners() {
-        loginButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                performLogin();
-            }
-        });
+        loginButton.addActionListener(e -> performLogin());
 
-        registerButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                openRegisterDialog();
-            }
-        });
+        registerButton.addActionListener(e -> openRegisterDialog());
 
         // Enter key no campo senha faz login
-        passwordField.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                performLogin();
-            }
-        });
+        passwordField.addActionListener(e -> performLogin());
     }
 
     private void checkApiConnection() {

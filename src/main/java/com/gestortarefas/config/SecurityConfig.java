@@ -27,10 +27,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers(new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/api/**")).permitAll()
-                .requestMatchers(new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/h2-console/**")).permitAll()
-                .requestMatchers(new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/actuator/**")).permitAll()
-                .anyRequest().authenticated()
+                .anyRequest().permitAll() // PERMITE TUDO - SEM RESTRIÇÕES
             )
             .headers(headers -> headers
                 .frameOptions(frameOptions -> frameOptions.disable())); // Para console H2

@@ -2,6 +2,7 @@ package com.gestortarefas.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.time.LocalDateTime;
 
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "tasks")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Task {
 
     @Id
@@ -47,16 +49,19 @@ public class Task {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"tasks", "teams", "managedTeams", "profile"})
     private User user;
     
     // Equipa à qual a tarefa está atribuída (opcional)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_team_id")
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"members", "tasks", "manager"})
     private Team assignedTeam;
     
     // Utilizador que criou a tarefa (pode ser diferente do utilizador atribuído)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_user_id")
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"tasks", "teams", "managedTeams", "profile"})
     private User createdBy;
     
     // Tags ou etiquetas da tarefa

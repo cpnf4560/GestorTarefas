@@ -1,6 +1,6 @@
 package com.gestortarefas.view.dashboard;
 
-import com.gestortarefas.util.RestApiClient;
+import com.gestortarefas.view.dialogs.TaskCreateDialog;
 
 import javax.swing.*;
 import java.awt.*;
@@ -86,6 +86,7 @@ public class EmployeeDashboardPanel extends DashboardBasePanel {
     }
     
     private void updateUserInfo(Map<String, Object> dashboardData) {
+        @SuppressWarnings("unchecked")
         Map<String, Object> user = (Map<String, Object>) dashboardData.get("user");
         if (user != null) {
             String username = (String) user.get("username");
@@ -125,67 +126,22 @@ public class EmployeeDashboardPanel extends DashboardBasePanel {
     }
     
     private void openNewTaskDialog() {
-        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Nova Tarefa", true);
-        dialog.setLayout(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        
-        // Campos do formulário
-        JTextField titleField = new JTextField(20);
-        JTextArea descArea = new JTextArea(4, 20);
-        descArea.setWrapStyleWord(true);
-        descArea.setLineWrap(true);
-        
-        JComboBox<String> priorityCombo = new JComboBox<>(new String[]{"BAIXA", "NORMAL", "ALTA", "URGENTE"});
-        priorityCombo.setSelectedItem("NORMAL");
-        
-        // Layout do formulário
-        gbc.gridx = 0; gbc.gridy = 0;
-        dialog.add(new JLabel("Título:"), gbc);
-        gbc.gridx = 1;
-        dialog.add(titleField, gbc);
-        
-        gbc.gridx = 0; gbc.gridy = 1;
-        dialog.add(new JLabel("Descrição:"), gbc);
-        gbc.gridx = 1;
-        dialog.add(new JScrollPane(descArea), gbc);
-        
-        gbc.gridx = 0; gbc.gridy = 2;
-        dialog.add(new JLabel("Prioridade:"), gbc);
-        gbc.gridx = 1;
-        dialog.add(priorityCombo, gbc);
-        
-        // Botões
-        JPanel buttonPanel = new JPanel(new FlowLayout());
-        JButton saveButton = new JButton("Criar");
-        JButton cancelButton = new JButton("Cancelar");
-        
-        saveButton.addActionListener(e -> {
-            if (titleField.getText().trim().isEmpty()) {
-                JOptionPane.showMessageDialog(dialog, "Título é obrigatório!", "Erro", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            
-            // Aqui deveria chamar a API para criar a tarefa
-            // Por enquanto, apenas fecha o diálogo
-            dialog.dispose();
-            refreshDashboard();
-            JOptionPane.showMessageDialog(this, "Tarefa criada com sucesso!");
-        });
-        
-        cancelButton.addActionListener(e -> dialog.dispose());
-        
-        buttonPanel.add(saveButton);
-        buttonPanel.add(cancelButton);
-        
-        gbc.gridx = 0; gbc.gridy = 3;
-        gbc.gridwidth = 2;
-        dialog.add(buttonPanel, gbc);
-        
-        dialog.pack();
-        dialog.setLocationRelativeTo(this);
-        dialog.setVisible(true);
+        try {
+            Window parentWindow = SwingUtilities.getWindowAncestor(this);
+            TaskCreateDialog dialog = new TaskCreateDialog(
+                parentWindow, 
+                currentUserId, 
+                apiClient,
+                this::refreshDashboard
+            );
+            dialog.setVisible(true);
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, 
+                "Erro ao abrir diálogo de criação de tarefa: " + e.getMessage(), 
+                "Erro", 
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     private void openProfileDialog() {
@@ -233,6 +189,7 @@ public class EmployeeDashboardPanel extends DashboardBasePanel {
         SwingUtilities.invokeLater(() -> {
             Map<String, Object> dashboardData = apiClient.getEmployeeDashboard(currentUserId);
             if (dashboardData != null) {
+                @SuppressWarnings("unchecked")
                 Map<String, Object> stats = (Map<String, Object>) dashboardData.get("stats");
                 if (stats != null) {
                     int overdueCount = getIntValue(stats, "overdueCount");

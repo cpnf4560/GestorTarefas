@@ -2,7 +2,6 @@ package com.gestortarefas.view;
 
 import com.gestortarefas.model.LoggedUser;
 import com.gestortarefas.model.UserRole;
-import com.gestortarefas.util.RestApiClient;
 
 import javax.swing.*;
 import java.awt.*;
@@ -19,11 +18,11 @@ public class LoginDialog extends JDialog {
     private JButton loginButton;
     private JButton cancelButton;
     private LoggedUser loggedUser;
-    private RestApiClient apiClient;
+    // private RestApiClient apiClient; // Campo removido pois não é utilizado
     
     public LoginDialog(Frame parent) {
         super(parent, "Login - Sistema de Gestão de Tarefas", true);
-        this.apiClient = new RestApiClient();
+        // this.apiClient = new RestApiClient(); // Removido pois não é utilizado
         initializeComponents();
         setupLayout();
         setupEventHandlers();
@@ -136,11 +135,11 @@ public class LoginDialog extends JDialog {
         JPanel panel = new JPanel(new GridLayout(5, 1, 3, 3)); // Mais espaço entre componentes
         panel.setBorder(BorderFactory.createTitledBorder(
             BorderFactory.createLineBorder(Color.GRAY), 
-            "👥 Utilizadores Demo", 
+            "👥 Utilizadores Demo (Funcionais)", 
             0, 0, new Font(Font.SANS_SERIF, Font.BOLD, 12)
         ));
         
-        JLabel infoLabel = new JLabel("<html><center>Clique para preencher automaticamente:</center></html>");
+        JLabel infoLabel = new JLabel("<html><center>Utilizadores totalmente funcionais.<br>Clique para preencher automaticamente:</center></html>");
         infoLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 11));
         infoLabel.setHorizontalAlignment(SwingConstants.CENTER);
         panel.add(infoLabel);

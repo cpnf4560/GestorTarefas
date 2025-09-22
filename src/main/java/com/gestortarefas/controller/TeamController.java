@@ -1,7 +1,9 @@
 package com.gestortarefas.controller;
 
+import com.gestortarefas.model.Task;
 import com.gestortarefas.model.Team;
 import com.gestortarefas.model.User;
+import com.gestortarefas.service.TaskService;
 import com.gestortarefas.service.TeamService;
 import com.gestortarefas.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -25,6 +29,9 @@ public class TeamController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private TaskService taskService;
 
     /**
      * Lista todas as equipas ativas
@@ -176,6 +183,48 @@ public class TeamController {
             return ResponseEntity.ok(teams);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Lista membros de uma equipa específica
+     */
+    @GetMapping("/{id}/members")
+    public ResponseEntity<List<Map<String, Object>>> getTeamMembers(@PathVariable Long id) {
+        try {
+            Team team = teamService.getTeamById(id);
+            List<User> members = team.getMembers();
+            
+            List<Map<String, Object>> memberData = new ArrayList<>();
+            for (User member : members) {
+                Map<String, Object> memberInfo = new HashMap<>();
+                memberInfo.put("id", member.getId());
+                memberInfo.put("username", member.getUsername());
+                memberInfo.put("fullName", member.getFullName());
+                memberInfo.put("email", member.getEmail());
+                memberInfo.put("role", member.getRole().toString());
+                
+                // Contar tarefas ativas e concluídas do membro
+                List<Task> memberTasks = taskService.findTasksByUser(member);
+                long activeTasks = memberTasks.stream()
+                    .filter(task -> task.getStatus() == Task.TaskStatus.PENDENTE || 
+                                  task.getStatus() == Task.TaskStatus.EM_ANDAMENTO)
+                    .count();
+                long completedTasks = memberTasks.stream()
+                    .filter(task -> task.getStatus() == Task.TaskStatus.CONCLUIDA)
+                    .count();
+                
+                memberInfo.put("activeTasks", activeTasks);
+                memberInfo.put("completedTasks", completedTasks);
+                
+                memberData.add(memberInfo);
+            }
+            
+            return ResponseEntity.ok(memberData);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(null);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }

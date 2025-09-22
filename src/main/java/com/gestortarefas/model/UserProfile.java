@@ -1,6 +1,7 @@
 package com.gestortarefas.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.LocalDateTime;
 
 /**
@@ -8,6 +9,7 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "user_profiles")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class UserProfile {
     
     @Id

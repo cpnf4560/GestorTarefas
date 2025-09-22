@@ -4,8 +4,7 @@ import com.gestortarefas.util.HttpUtil;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+
 import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -167,19 +166,9 @@ public class TaskDialog extends JDialog {
     }
 
     private void setupEventListeners() {
-        saveButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                saveTask();
-            }
-        });
+        saveButton.addActionListener(e -> saveTask());
 
-        cancelButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                dispose();
-            }
-        });
+        cancelButton.addActionListener(e -> dispose());
     }
 
     private void loadTaskData() {

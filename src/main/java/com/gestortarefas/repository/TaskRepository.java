@@ -173,19 +173,19 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     /**
      * Busca tarefas com prazo hoje
      */
-    @Query("SELECT t FROM Task t WHERE DATE(t.dueDate) = DATE(:today) AND t.status != 'CONCLUIDA'")
+    @Query("SELECT t FROM Task t WHERE CAST(t.dueDate AS DATE) = CAST(:today AS DATE) AND t.status != 'CONCLUIDA'")
     List<Task> findTasksDueToday(@Param("today") LocalDateTime today);
 
     /**
      * Busca tarefas com prazo hoje de um utilizador
      */
-    @Query("SELECT t FROM Task t WHERE t.user = :user AND DATE(t.dueDate) = DATE(:today) AND t.status != 'CONCLUIDA'")
+    @Query("SELECT t FROM Task t WHERE t.user = :user AND CAST(t.dueDate AS DATE) = CAST(:today AS DATE) AND t.status != 'CONCLUIDA'")
     List<Task> findTasksDueTodayByUser(@Param("user") User user, @Param("today") LocalDateTime today);
 
     /**
      * Busca tarefas com prazo hoje de uma equipa
      */
-    @Query("SELECT t FROM Task t WHERE t.assignedTeam = :team AND DATE(t.dueDate) = DATE(:today) AND t.status != 'CONCLUIDA'")
+    @Query("SELECT t FROM Task t WHERE t.assignedTeam = :team AND CAST(t.dueDate AS DATE) = CAST(:today AS DATE) AND t.status != 'CONCLUIDA'")
     List<Task> findTasksDueTodayByTeam(@Param("team") Team team, @Param("today") LocalDateTime today);
 
     /**

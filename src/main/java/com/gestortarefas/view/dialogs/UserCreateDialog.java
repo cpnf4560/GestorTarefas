@@ -5,8 +5,6 @@ import com.gestortarefas.util.RestApiClient;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.Base64;
@@ -211,26 +209,11 @@ public class UserCreateDialog extends JDialog {
      * Configura event listeners
      */
     private void setupEventListeners() {
-        selectPhotoButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                selectPhoto();
-            }
-        });
+        selectPhotoButton.addActionListener(e -> selectPhoto());
         
-        createButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                createUser();
-            }
-        });
+        createButton.addActionListener(e -> createUser());
         
-        cancelButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                dispose();
-            }
-        });
+        cancelButton.addActionListener(e -> dispose());
     }
     
     /**

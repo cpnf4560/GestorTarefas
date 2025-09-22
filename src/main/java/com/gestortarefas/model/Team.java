@@ -1,6 +1,7 @@
 package com.gestortarefas.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.List;
  */
 @Entity
 @Table(name = "teams")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Team {
     
     @Id
@@ -33,10 +35,12 @@ public class Team {
     
     // Relacionamento com utilizadores (membros da equipa)
     @ManyToMany(mappedBy = "teams", fetch = FetchType.LAZY)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<User> members = new ArrayList<>();
     
     // Relacionamento com tarefas da equipa
     @OneToMany(mappedBy = "assignedTeam", fetch = FetchType.LAZY)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<Task> tasks = new ArrayList<>();
     
     // Gerente da equipa (opcional)

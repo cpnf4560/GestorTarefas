@@ -149,7 +149,6 @@ public class RestApiClient {
     /**
      * Atualiza status de uma tarefa
      */
-    @SuppressWarnings("unchecked")
     public boolean updateTaskStatus(Long taskId, String status, Long userId) {
         try {
             String url = BASE_URL + "/tasks/" + taskId + "/status";
@@ -171,7 +170,6 @@ public class RestApiClient {
     /**
      * Atualiza status de uma tarefa (sem userId)
      */
-    @SuppressWarnings("unchecked")
     public boolean updateTaskStatus(Long taskId, String status) {
         return updateTaskStatus(taskId, status, 1L); // Default user ID
     }
@@ -179,8 +177,7 @@ public class RestApiClient {
     /**
      * Cria novo utilizador
      */
-    @SuppressWarnings("unchecked")
-    public Map<String, Object> createUser(Map<String, Object> userData) {
+    public boolean createUser(Map<String, Object> userData) {
         try {
             String url = BASE_URL + "/users";
             HttpHeaders headers = new HttpHeaders();
@@ -188,17 +185,16 @@ public class RestApiClient {
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(userData, headers);
             
             ResponseEntity<?> response = restTemplate.postForEntity(url, entity, Map.class);
-            return (Map<String, Object>) response.getBody();
+            return response.getStatusCode().is2xxSuccessful();
         } catch (Exception e) {
             System.err.println("Erro ao criar utilizador: " + e.getMessage());
-            return null;
+            return false;
         }
     }
     
     /**
      * Cria nova equipa
      */
-    @SuppressWarnings("unchecked")
     public boolean createTeam(Map<String, Object> teamData) {
         try {
             String url = BASE_URL + "/teams";
@@ -262,7 +258,6 @@ public class RestApiClient {
     /**
      * Cria nova tarefa
      */
-    @SuppressWarnings("unchecked")
     public boolean createTask(Map<String, Object> taskData) {
         try {
             String url = BASE_URL + "/tasks";
@@ -281,7 +276,6 @@ public class RestApiClient {
     /**
      * Atualiza uma tarefa
      */
-    @SuppressWarnings("unchecked")
     public boolean updateTask(Long taskId, Map<String, Object> taskData) {
         try {
             String url = BASE_URL + "/tasks/" + taskId;
@@ -383,7 +377,6 @@ public class RestApiClient {
     /**
      * Adiciona membro à equipa
      */
-    @SuppressWarnings("unchecked")
     public boolean addTeamMember(Long teamId, Long userId, Long requesterId) {
         try {
             String url = BASE_URL + "/teams/" + teamId + "/members/" + userId;

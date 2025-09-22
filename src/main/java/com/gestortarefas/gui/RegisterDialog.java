@@ -4,8 +4,6 @@ import com.gestortarefas.util.HttpUtil;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.net.http.HttpResponse;
 import java.util.HashMap;
 import java.util.Map;
@@ -123,27 +121,12 @@ public class RegisterDialog extends JDialog {
     }
 
     private void setupEventListeners() {
-        registerButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                performRegistration();
-            }
-        });
+        registerButton.addActionListener(e -> performRegistration());
 
-        cancelButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                dispose();
-            }
-        });
+        cancelButton.addActionListener(e -> dispose());
         
         // Enter key no último campo executa registro
-        confirmPasswordField.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                performRegistration();
-            }
-        });
+        confirmPasswordField.addActionListener(e -> performRegistration());
     }
 
     private void performRegistration() {
