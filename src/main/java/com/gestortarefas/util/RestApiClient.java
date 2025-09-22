@@ -115,6 +115,25 @@ public class RestApiClient {
             return null;
         }
     }
+
+    /**
+     * Lista todos os utilizadores
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getAllUsers() {
+        try {
+            String url = BASE_URL + "/users";
+            ResponseEntity<?> response = restTemplate.getForEntity(url, Map.class);
+            Map<String, Object> result = (Map<String, Object>) response.getBody();
+            if (result != null && result.containsKey("users")) {
+                return (List<Map<String, Object>>) result.get("users");
+            }
+            return null;
+        } catch (Exception e) {
+            System.err.println("Erro ao listar utilizadores: " + e.getMessage());
+            return null;
+        }
+    }
     
     /**
      * Lista todas as tarefas

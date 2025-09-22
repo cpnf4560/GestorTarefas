@@ -64,6 +64,12 @@ public class Task {
     @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"tasks", "teams", "managedTeams", "profile"})
     private User createdBy;
     
+    // Utilizador que atribuiu a tarefa (gerente que fez a atribuição específica)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_by_user_id")
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"tasks", "teams", "managedTeams", "profile"})
+    private User assignedBy;
+    
     // Tags ou etiquetas da tarefa
     @Column(name = "tags")
     private String tags;
@@ -75,6 +81,11 @@ public class Task {
     // Horas realmente gastas na tarefa
     @Column(name = "actual_hours")
     private Integer actualHours;
+
+    // Comentários da tarefa (sistema de chat)
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private java.util.List<TaskComment> comments = new java.util.ArrayList<>();
 
     // Enums para Status e Prioridade
     public enum TaskStatus {
@@ -253,6 +264,22 @@ public class Task {
         this.createdBy = createdBy;
     }
     
+    public User getAssignedBy() {
+        return assignedBy;
+    }
+    
+    public void setAssignedBy(User assignedBy) {
+        this.assignedBy = assignedBy;
+    }
+    
+    public java.util.List<TaskComment> getComments() {
+        return comments;
+    }
+    
+    public void setComments(java.util.List<TaskComment> comments) {
+        this.comments = comments;
+    }
+    
     public String getTags() {
         return tags;
     }
@@ -357,6 +384,44 @@ public class Task {
         }
         
         return sb.toString();
+    }
+    
+    // Métodos para gestão de comentários
+    public void addComment(TaskComment comment) {
+        comments.add(comment);
+        comment.setTask(this);
+    }
+    
+    public void removeComment(TaskComment comment) {
+        comments.remove(comment);
+        comment.setTask(null);
+    }
+    
+    public long getCommentsCount() {
+        return comments.size();
+    }
+    
+    public java.util.List<TaskComment> getRecentComments(int limit) {
+        return comments.stream()
+                .sorted((c1, c2) -> c2.getCreatedAt().compareTo(c1.getCreatedAt()))
+                .limit(limit)
+                .collect(java.util.stream.Collectors.toList());
+    }
+    
+    public boolean hasComments() {
+        return !comments.isEmpty();
+    }
+    
+    public String getAssignmentHistory() {
+        StringBuilder history = new StringBuilder();
+        if (createdBy != null) {
+            history.append("Criado por: ").append(createdBy.getFullName());
+        }
+        if (assignedBy != null && !assignedBy.equals(createdBy)) {
+            if (history.length() > 0) history.append(" | ");
+            history.append("Atribuído por: ").append(assignedBy.getFullName());
+        }
+        return history.toString();
     }
     
     public boolean hasEstimatedTime() {

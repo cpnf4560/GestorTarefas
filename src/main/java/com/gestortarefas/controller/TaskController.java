@@ -4,8 +4,14 @@ import com.gestortarefas.model.Task;
 import com.gestortarefas.model.Task.TaskStatus;
 import com.gestortarefas.model.Task.TaskPriority;
 import com.gestortarefas.model.User;
+import com.gestortarefas.model.Team;
+import com.gestortarefas.model.TaskComment;
 import com.gestortarefas.service.TaskService;
 import com.gestortarefas.service.UserService;
+import com.gestortarefas.repository.TaskRepository;
+import com.gestortarefas.repository.UserRepository;
+import com.gestortarefas.repository.TeamRepository;
+import com.gestortarefas.repository.TaskCommentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +35,18 @@ public class TaskController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private TaskRepository taskRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private TeamRepository teamRepository;
+
+    @Autowired
+    private TaskCommentRepository taskCommentRepository;
 
     /**
      * Cria uma nova tarefa
@@ -613,5 +631,148 @@ public class TaskController {
 
         public Integer getEstimatedHours() { return estimatedHours; }
         public void setEstimatedHours(Integer estimatedHours) { this.estimatedHours = estimatedHours; }
+    }
+
+    /**
+     * Endpoint para gerentes atribuírem tarefas a funcionários específicos
+     */
+    @PutMapping("/{id}/assign")
+    public ResponseEntity<?> assignTaskToUser(@PathVariable Long id,
+                                             @RequestBody AssignTaskRequest request) {
+        try {
+            // Validar dados obrigatórios
+            if (request.getUserId() == null) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "ID do utilizador a atribuir é obrigatório"));
+            }
+
+            if (request.getAssignedById() == null) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "ID do gerente que está a atribuir é obrigatório"));
+            }
+
+            // Verificar se a tarefa existe
+            Optional<Task> taskOpt = taskRepository.findById(id);
+            if (!taskOpt.isPresent()) {
+                Map<String, String> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Tarefa não encontrada");
+                return ResponseEntity.notFound().build();
+            }
+
+            // Verificar se o utilizador a atribuir existe
+            Optional<User> userToAssignOpt = userRepository.findById(request.getUserId());
+            if (!userToAssignOpt.isPresent()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Utilizador a atribuir não encontrado"));
+            }
+
+            // Verificar se o gerente existe
+            Optional<User> managerOpt = userRepository.findById(request.getAssignedById());
+            if (!managerOpt.isPresent()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Gerente não encontrado"));
+            }
+
+            Task task = taskOpt.get();
+            User userToAssign = userToAssignOpt.get();
+            User manager = managerOpt.get();
+
+            // Verificar se o gerente tem permissão para atribuir esta tarefa
+            if (!task.canBeEditedBy(manager)) {
+                return ResponseEntity.status(403)
+                        .body(Map.of("error", "Não tem permissão para atribuir esta tarefa"));
+            }
+
+            // Verificar se o utilizador está ativo
+            if (!userToAssign.getActive()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Não é possível atribuir tarefa a utilizador inativo"));
+            }
+
+            // Guardar utilizador anterior para histórico
+            String previousAssignment = task.getAssignmentInfo();
+
+            // Atribuir a tarefa
+            task.setUser(userToAssign);
+            task.setAssignedBy(manager);
+            
+            // Atribuir equipa se especificada
+            if (request.getTeamId() != null) {
+                Optional<Team> teamOpt = teamRepository.findById(request.getTeamId());
+                if (teamOpt.isPresent()) {
+                    task.setAssignedTeam(teamOpt.get());
+                }
+            }
+
+            // Guardar mudanças
+            Task savedTask = taskRepository.save(task);
+
+            // Criar comentário automático do sistema sobre a atribuição
+            if (taskCommentRepository != null) {
+                try {
+                    String assignmentMessage = String.format(
+                        "Tarefa atribuída por %s para %s", 
+                        manager.getFullName(), 
+                        userToAssign.getFullName()
+                    );
+                    
+                    if (request.getTeamId() != null && task.getAssignedTeam() != null) {
+                        assignmentMessage += " (Equipa: " + task.getAssignedTeam().getName() + ")";
+                    }
+
+                    TaskComment systemComment = new TaskComment(task, manager, assignmentMessage, true);
+                    taskCommentRepository.save(systemComment);
+                } catch (Exception e) {
+                    // Não falhar a atribuição se o comentário falhar
+                    System.err.println("Erro ao criar comentário do sistema: " + e.getMessage());
+                }
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Tarefa atribuída com sucesso");
+            response.put("task", savedTask);
+            response.put("assignedTo", userToAssign.getFullName());
+            response.put("assignedBy", manager.getFullName());
+            response.put("previousAssignment", previousAssignment);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("error", "Erro ao atribuir tarefa: " + e.getMessage()));
+        }
+    }
+
+    // Classe para request de atribuição de tarefa
+    public static class AssignTaskRequest {
+        private Long userId;
+        private Long assignedById;
+        private Long teamId;
+
+        public AssignTaskRequest() {}
+
+        public Long getUserId() {
+            return userId;
+        }
+
+        public void setUserId(Long userId) {
+            this.userId = userId;
+        }
+
+        public Long getAssignedById() {
+            return assignedById;
+        }
+
+        public void setAssignedById(Long assignedById) {
+            this.assignedById = assignedById;
+        }
+
+        public Long getTeamId() {
+            return teamId;
+        }
+
+        public void setTeamId(Long teamId) {
+            this.teamId = teamId;
+        }
     }
 }

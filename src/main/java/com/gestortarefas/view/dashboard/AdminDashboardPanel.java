@@ -458,20 +458,85 @@ public class AdminDashboardPanel extends DashboardBasePanel {
     }
     
     private void loadAllUsers() {
-        // Implementar carregamento de utilizadores
         SwingUtilities.invokeLater(() -> {
-            usersTableModel.setRowCount(0);
-            // Chamar API para carregar todos os utilizadores
-            JOptionPane.showMessageDialog(this, "Carregar utilizadores - Implementar API call");
+            try {
+                usersTableModel.setRowCount(0);
+                
+                // Chamar API para carregar todos os utilizadores
+                com.gestortarefas.util.RestApiClient apiClient = new com.gestortarefas.util.RestApiClient();
+                var users = apiClient.getAllUsers();
+                
+                if (users != null) {
+                    for (var user : users) {
+                        String id = user.get("id").toString();
+                        String username = (String) user.get("username");
+                        String email = (String) user.get("email");
+                        String role = user.get("role") != null ? user.get("role").toString() : "N/A";
+                        String teamName = "N/A"; // Por implementar associação de equipas
+                        boolean active = (Boolean) user.getOrDefault("active", true);
+                        String createdAt = user.get("createdAt") != null ? user.get("createdAt").toString() : "N/A";
+                        
+                        usersTableModel.addRow(new Object[]{
+                            id, username, email, role, teamName, 
+                            active ? "Sim" : "Não", createdAt
+                        });
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(this, 
+                        "Erro ao carregar utilizadores. Verifique a ligação à API.", 
+                        "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, 
+                    "Erro ao carregar utilizadores: " + e.getMessage(), 
+                    "Erro", JOptionPane.ERROR_MESSAGE);
+            }
         });
     }
-    
+
     private void loadAllTeams() {
-        // Implementar carregamento de equipas
         SwingUtilities.invokeLater(() -> {
-            teamsTableModel.setRowCount(0);
-            // Chamar API para carregar todas as equipas
-            JOptionPane.showMessageDialog(this, "Carregar equipas - Implementar API call");
+            try {
+                teamsTableModel.setRowCount(0);
+                
+                // Chamar API para carregar todas as equipas
+                com.gestortarefas.util.RestApiClient apiClient = new com.gestortarefas.util.RestApiClient();
+                var teams = apiClient.getAllTeams();
+                
+                if (teams != null) {
+                    for (var team : teams) {
+                        String id = team.get("id").toString();
+                        String name = (String) team.get("name");
+                        String description = (String) team.getOrDefault("description", "");
+                        
+                        // Manager
+                        String managerName = "N/A";
+                        if (team.containsKey("manager") && team.get("manager") != null) {
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> manager = (Map<String, Object>) team.get("manager");
+                            managerName = (String) manager.get("fullName");
+                        }
+                        
+                        // Contar membros (se disponível)
+                        String memberCount = "N/A";
+                        if (team.containsKey("activeTasksCount")) {
+                            memberCount = team.get("activeTasksCount").toString();
+                        }
+                        
+                        teamsTableModel.addRow(new Object[]{
+                            id, name, description, managerName, memberCount
+                        });
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(this, 
+                        "Erro ao carregar equipas. Verifique a ligação à API.", 
+                        "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, 
+                    "Erro ao carregar equipas: " + e.getMessage(), 
+                    "Erro", JOptionPane.ERROR_MESSAGE);
+            }
         });
     }
     
