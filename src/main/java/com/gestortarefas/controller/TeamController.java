@@ -1,5 +1,6 @@
 package com.gestortarefas.controller;
 
+import com.gestortarefas.dto.TeamSummaryDTO;
 import com.gestortarefas.model.Task;
 import com.gestortarefas.model.Team;
 import com.gestortarefas.model.User;
@@ -41,6 +42,41 @@ public class TeamController {
         try {
             List<Team> teams = teamService.getAllActiveTeams();
             return ResponseEntity.ok(teams);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Lista todas as equipas com dados completos para administração
+     */
+    @GetMapping("/summary")
+    public ResponseEntity<List<TeamSummaryDTO>> getTeamsSummary() {
+        try {
+            List<Team> teams = teamService.getAllActiveTeams();
+            List<TeamSummaryDTO> teamsSummary = new ArrayList<>();
+            
+            for (Team team : teams) {
+                String managerName = team.getManager() != null ? team.getManager().getFullName() : null;
+                Long managerId = team.getManager() != null ? team.getManager().getId() : null;
+                Integer memberCount = team.getMembers() != null ? team.getMembers().size() : 0;
+                Integer activeTasksCount = (int) team.getActiveTasksCount();
+                
+                TeamSummaryDTO dto = new TeamSummaryDTO(
+                    team.getId(),
+                    team.getName(),
+                    team.getDescription(),
+                    managerName,
+                    managerId,
+                    memberCount,
+                    activeTasksCount,
+                    team.getCreatedAt(),
+                    team.getActive()
+                );
+                teamsSummary.add(dto);
+            }
+            
+            return ResponseEntity.ok(teamsSummary);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }

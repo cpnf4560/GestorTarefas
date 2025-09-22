@@ -6,6 +6,7 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -17,10 +18,12 @@ public class TeamCreateDialog extends JDialog {
     
     private final RestApiClient apiClient;
     private final Runnable onSuccess;
+    private final Long currentUserId;
     
     // Componentes da interface
     private JTextField nameField;
     private JTextArea descriptionArea;
+    private JLabel managerInfoLabel;
     
     private JButton createButton;
     private JButton cancelButton;
@@ -29,9 +32,14 @@ public class TeamCreateDialog extends JDialog {
     private boolean teamCreated = false;
     
     public TeamCreateDialog(Window parent, RestApiClient apiClient, Runnable onSuccess) {
+        this(parent, apiClient, onSuccess, 1L); // Default para admin
+    }
+    
+    public TeamCreateDialog(Window parent, RestApiClient apiClient, Runnable onSuccess, Long currentUserId) {
         super(parent, "Nova Equipa", ModalityType.APPLICATION_MODAL);
         this.apiClient = apiClient;
         this.onSuccess = onSuccess;
+        this.currentUserId = currentUserId;
         
         initializeComponents();
         setupDialog();
@@ -88,6 +96,58 @@ public class TeamCreateDialog extends JDialog {
         JScrollPane descScrollPane = new JScrollPane(descriptionArea);
         formPanel.add(descScrollPane, gbc);
         
+        // Informação sobre o gestor
+        row++;
+        gbc.gridx = 0; gbc.gridy = row; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0; gbc.weighty = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        formPanel.add(new JLabel("Gestor:"), gbc);
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
+        
+        // Buscar informação do utilizador atual para mostrar como gestor
+        try {
+            List<Map<String, Object>> users = apiClient.getAllUsers();
+            if (users != null) {
+                for (Map<String, Object> user : users) {
+                    Long userId = ((Number) user.get("id")).longValue();
+                    if (userId.equals(currentUserId)) {
+                        String fullName = (String) user.get("fullName");
+                        String email = (String) user.get("email");
+                        managerInfoLabel = new JLabel(fullName + " (" + email + ")");
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Fallback
+        }
+        
+        if (managerInfoLabel == null) {
+            managerInfoLabel = new JLabel("Utilizador atual");
+        }
+        
+        formPanel.add(managerInfoLabel, gbc);
+        
+        // Informação sobre membros (inicialmente vazio)
+        row++;
+        gbc.gridx = 0; gbc.gridy = row; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0;
+        formPanel.add(new JLabel("Nº Membros:"), gbc);
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
+        formPanel.add(new JLabel("0 (novos membros podem ser adicionados depois da criação)"), gbc);
+        
+        // Informação sobre tarefas ativas
+        row++;
+        gbc.gridx = 0; gbc.gridy = row; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0;
+        formPanel.add(new JLabel("Tarefas Ativas:"), gbc);
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
+        formPanel.add(new JLabel("0 (tarefas serão atribuídas depois da criação)"), gbc);
+        
+        // Informação sobre data de criação
+        row++;
+        gbc.gridx = 0; gbc.gridy = row; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0;
+        formPanel.add(new JLabel("Data Criação:"), gbc);
+        gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
+        formPanel.add(new JLabel("Será definida automaticamente"), gbc);
+        
         // Status
         row++;
         gbc.gridx = 0; gbc.gridy = row; gbc.gridwidth = 2; gbc.weighty = 0;
@@ -143,6 +203,7 @@ public class TeamCreateDialog extends JDialog {
         Map<String, Object> teamData = new HashMap<>();
         teamData.put("name", name);
         teamData.put("description", descriptionArea.getText().trim());
+        teamData.put("managerId", currentUserId); // Usar utilizador atual como gestor
         
         // Desabilitar botão durante criação
         createButton.setEnabled(false);

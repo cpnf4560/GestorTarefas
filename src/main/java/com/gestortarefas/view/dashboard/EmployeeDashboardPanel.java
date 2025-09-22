@@ -1,6 +1,7 @@
 package com.gestortarefas.view.dashboard;
 
 import com.gestortarefas.view.dialogs.TaskCreateDialog;
+import com.gestortarefas.view.dialogs.TaskCommentsDialog;
 
 import javax.swing.*;
 import java.awt.*;
@@ -211,11 +212,62 @@ public class EmployeeDashboardPanel extends DashboardBasePanel {
         });
     }
     
-    private int getIntValue(Map<String, Object> map, String key) {
+    protected int getIntValue(Map<String, Object> map, String key) {
         Object value = map.get(key);
         if (value instanceof Number) {
             return ((Number) value).intValue();
         }
         return 0;
+    }
+    
+    /**
+     * Sobrescrever método para mostrar detalhes da tarefa com opções para funcionário
+     */
+    @Override
+    protected void showTaskDetails(TaskItem task) {
+        // Criar diálogo personalizado para funcionário com opção de comentários
+        String[] options = {"💬 Ver Comentários", "📋 Detalhes", "Fechar"};
+        
+        int choice = JOptionPane.showOptionDialog(this, 
+            String.format("Tarefa: %s\n\nEscolha uma ação:", task.getTitle()),
+            "Ver Tarefa #" + task.getId(),
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            options,
+            options[0]);
+        
+        switch (choice) {
+            case 0: // Ver Comentários
+                showTaskComments(task);
+                break;
+            case 1: // Detalhes básicos
+                super.showTaskDetails(task);
+                break;
+            // Caso 2 ou qualquer outro: Fechar (não faz nada)
+        }
+    }
+    
+    /**
+     * Abre diálogo de comentários da tarefa
+     */
+    private void showTaskComments(TaskItem task) {
+        try {
+            Window parentWindow = SwingUtilities.getWindowAncestor(this);
+            TaskCommentsDialog commentsDialog = new TaskCommentsDialog(
+                parentWindow,
+                task.getId(),
+                task.getTitle(),
+                currentUserId,
+                apiClient
+            );
+            commentsDialog.setVisible(true);
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, 
+                "Erro ao abrir comentários da tarefa: " + e.getMessage(), 
+                "Erro", 
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
 }

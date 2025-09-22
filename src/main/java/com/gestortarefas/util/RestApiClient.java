@@ -5,6 +5,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -112,6 +113,87 @@ public class RestApiClient {
             return (List<Map<String, Object>>) response.getBody();
         } catch (Exception e) {
             System.err.println("Erro ao listar equipas: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Lista equipas com dados completos para administração
+     */
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getTeamsSummary() {
+        try {
+            String url = BASE_URL + "/teams/summary";
+            ResponseEntity<?> response = restTemplate.getForEntity(url, List.class);
+            return (List<Map<String, Object>>) response.getBody();
+        } catch (Exception e) {
+            System.err.println("Erro ao listar resumo de equipas: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Atualiza uma equipa
+     */
+    public boolean updateTeam(Long teamId, String name, String description, Long requesterId) {
+        try {
+            String url = BASE_URL + "/teams/" + teamId;
+            
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("name", name);
+            requestBody.put("description", description);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("User-Id", requesterId.toString());
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
+            ResponseEntity<?> response = restTemplate.exchange(url, HttpMethod.PUT, requestEntity, Object.class);
+            
+            return response.getStatusCode().is2xxSuccessful();
+        } catch (Exception e) {
+            System.err.println("Erro ao atualizar equipa: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Define o gestor de uma equipa
+     */
+    public boolean setTeamManager(Long teamId, Long managerId, Long requesterId) {
+        try {
+            String url = BASE_URL + "/teams/" + teamId + "/manager/" + managerId;
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("User-Id", requesterId.toString());
+            
+            HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+            ResponseEntity<?> response = restTemplate.exchange(url, HttpMethod.PUT, requestEntity, Object.class);
+            
+            return response.getStatusCode().is2xxSuccessful();
+        } catch (Exception e) {
+            System.err.println("Erro ao definir gestor da equipa: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Busca utilizador por nome completo
+     */
+    public Map<String, Object> findUserByFullName(String fullName) {
+        try {
+            List<Map<String, Object>> users = getAllUsers();
+            if (users != null) {
+                for (Map<String, Object> user : users) {
+                    String userFullName = (String) user.get("fullName");
+                    if (fullName.equals(userFullName)) {
+                        return user;
+                    }
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            System.err.println("Erro ao buscar utilizador por nome: " + e.getMessage());
             return null;
         }
     }
@@ -408,6 +490,70 @@ public class RestApiClient {
         } catch (Exception e) {
             System.err.println("Erro ao adicionar membro à equipa: " + e.getMessage());
             return false;
+        }
+    }
+    
+    /**
+     * Busca comentários de uma tarefa
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getTaskComments(Long taskId) {
+        try {
+            String url = BASE_URL + "/tasks/" + taskId + "/comments";
+            ResponseEntity<?> response = restTemplate.getForEntity(url, Map.class);
+            return (Map<String, Object>) response.getBody();
+        } catch (Exception e) {
+            System.err.println("Erro ao buscar comentários da tarefa: " + e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Adiciona comentário a uma tarefa
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> addTaskComment(Long taskId, Map<String, Object> commentData) {
+        try {
+            String url = BASE_URL + "/tasks/" + taskId + "/comments";
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(commentData, headers);
+            
+            ResponseEntity<?> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
+            Map<String, Object> result = (Map<String, Object>) response.getBody();
+            if (result == null) {
+                result = Map.of("success", response.getStatusCode().is2xxSuccessful());
+            }
+            return result;
+        } catch (Exception e) {
+            System.err.println("Erro ao adicionar comentário: " + e.getMessage());
+            return Map.of("success", false, "error", e.getMessage());
+        }
+    }
+    
+    /**
+     * Atribui tarefa a um funcionário (para gerentes)
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> assignTask(Long taskId, Long assignedUserId, Long managerId) {
+        try {
+            String url = BASE_URL + "/tasks/" + taskId + "/assign";
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("User-Id", managerId.toString());
+            
+            Map<String, Object> assignData = Map.of("assignedUserId", assignedUserId);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(assignData, headers);
+            
+            ResponseEntity<?> response = restTemplate.exchange(url, HttpMethod.PUT, entity, Map.class);
+            Map<String, Object> result = (Map<String, Object>) response.getBody();
+            if (result == null) {
+                result = Map.of("success", response.getStatusCode().is2xxSuccessful());
+            }
+            return result;
+        } catch (Exception e) {
+            System.err.println("Erro ao atribuir tarefa: " + e.getMessage());
+            return Map.of("success", false, "error", e.getMessage());
         }
     }
 }

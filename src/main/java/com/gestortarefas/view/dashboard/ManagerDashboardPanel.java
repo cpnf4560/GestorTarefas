@@ -1,6 +1,8 @@
 package com.gestortarefas.view.dashboard;
 
 import com.gestortarefas.view.dialog.AssignTaskDialog;
+import com.gestortarefas.view.dialogs.TaskCommentsDialog;
+import com.gestortarefas.view.dialogs.TaskAssignmentDialog;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -366,23 +368,326 @@ public class ManagerDashboardPanel extends DashboardBasePanel {
     
     // Métodos para relatórios
     private void showProductivityReport() {
-        JOptionPane.showMessageDialog(this, "Relatório de Produtividade - Implementar", 
-            "Relatório", JOptionPane.INFORMATION_MESSAGE);
+        if (selectedTeamId == null) {
+            JOptionPane.showMessageDialog(this, "Selecione uma equipa primeiro!", "Aviso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        try {
+            // Buscar dados da equipa
+            List<Map<String, Object>> members = apiClient.getTeamMembers(selectedTeamId);
+            
+            StringBuilder report = new StringBuilder();
+            report.append("=== RELATÓRIO DE PRODUTIVIDADE ===\n\n");
+            
+            if (members != null && !members.isEmpty()) {
+                int totalActiveTasks = 0;
+                int totalCompletedTasks = 0;
+                
+                for (Map<String, Object> member : members) {
+                    String name = getStringValue(member, "username", "N/A");
+                    int activeTasks = getIntValue(member, "activeTasks");
+                    int completedTasks = getIntValue(member, "completedTasks");
+                    
+                    totalActiveTasks += activeTasks;
+                    totalCompletedTasks += completedTasks;
+                    
+                    double completionRate = (activeTasks + completedTasks) > 0 
+                        ? (completedTasks * 100.0) / (activeTasks + completedTasks) 
+                        : 0;
+                    
+                    report.append(String.format("👤 %s:\n", name));
+                    report.append(String.format("   • Tarefas Ativas: %d\n", activeTasks));
+                    report.append(String.format("   • Tarefas Concluídas: %d\n", completedTasks));
+                    report.append(String.format("   • Taxa de Conclusão: %.1f%%\n\n", completionRate));
+                }
+                
+                report.append("=== RESUMO DA EQUIPA ===\n");
+                report.append(String.format("Total de Tarefas Ativas: %d\n", totalActiveTasks));
+                report.append(String.format("Total de Tarefas Concluídas: %d\n", totalCompletedTasks));
+                
+                double teamRate = (totalActiveTasks + totalCompletedTasks) > 0 
+                    ? (totalCompletedTasks * 100.0) / (totalActiveTasks + totalCompletedTasks) 
+                    : 0;
+                report.append(String.format("Taxa Geral da Equipa: %.1f%%", teamRate));
+            } else {
+                report.append("Nenhum membro encontrado na equipa.");
+            }
+            
+            JTextArea textArea = new JTextArea(report.toString());
+            textArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+            textArea.setEditable(false);
+            JScrollPane scrollPane = new JScrollPane(textArea);
+            scrollPane.setPreferredSize(new Dimension(500, 400));
+            
+            JOptionPane.showMessageDialog(this, scrollPane, "Relatório de Produtividade", JOptionPane.INFORMATION_MESSAGE);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Erro ao gerar relatório: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     private void showTasksReport() {
-        JOptionPane.showMessageDialog(this, "Relatório de Tarefas - Implementar", 
-            "Relatório", JOptionPane.INFORMATION_MESSAGE);
+        try {
+            Map<String, Object> stats = apiClient.getManagerDashboard(currentUserId);
+            
+            StringBuilder report = new StringBuilder();
+            report.append("=== RELATÓRIO DE TAREFAS ===\n\n");
+            report.append("ESTATÍSTICAS GERAIS:\n");
+            report.append("- Total de tarefas: ").append(getIntValue(stats, "totalTasks", 0)).append("\n");
+            report.append("- Tarefas pendentes: ").append(getIntValue(stats, "pendingCount", 0)).append("\n");
+            report.append("- Tarefas de hoje: ").append(getIntValue(stats, "todayCount", 0)).append("\n");
+            report.append("- Tarefas atrasadas: ").append(getIntValue(stats, "overdueCount", 0)).append("\n");
+            report.append("- Tarefas concluídas: ").append(getIntValue(stats, "completedCount", 0)).append("\n\n");
+            
+            // Listar algumas tarefas recentes se disponível
+            List<Map<String, Object>> allTasks = apiClient.getUserTasks(currentUserId);
+            if (!allTasks.isEmpty()) {
+                report.append("ÚLTIMAS TAREFAS:\n");
+                int count = 0;
+                for (Map<String, Object> task : allTasks) {
+                    if (count >= 10) break; // Limitar a 10
+                    String title = getStringValue(task, "title", "Sem título");
+                    String status = getStringValue(task, "status", "Desconhecido");
+                    String priority = getStringValue(task, "priority", "Normal");
+                    
+                    report.append("- ").append(title)
+                          .append(" | Estado: ").append(status)
+                          .append(" | Prioridade: ").append(priority)
+                          .append("\n");
+                    count++;
+                }
+            }
+            
+            JDialog reportDialog = new JDialog((JFrame) SwingUtilities.getWindowAncestor(this), 
+                                             "Relatório de Tarefas", true);
+            reportDialog.setSize(600, 400);
+            reportDialog.setLocationRelativeTo(this);
+
+            JTextArea reportArea = new JTextArea(report.toString());
+            reportArea.setEditable(false);
+            reportArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+            
+            JScrollPane scrollPane = new JScrollPane(reportArea);
+            reportDialog.add(scrollPane, BorderLayout.CENTER);
+            
+            JPanel buttonPanel = new JPanel(new FlowLayout());
+            JButton closeButton = new JButton("Fechar");
+            closeButton.addActionListener(e -> reportDialog.dispose());
+            buttonPanel.add(closeButton);
+            
+            reportDialog.add(buttonPanel, BorderLayout.SOUTH);
+            reportDialog.setVisible(true);
+            
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, 
+                "Erro ao gerar relatório: " + e.getMessage(),
+                "Erro", JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     private void showTeamPerformanceReport() {
-        JOptionPane.showMessageDialog(this, "Performance da Equipa - Implementar", 
-            "Relatório", JOptionPane.INFORMATION_MESSAGE);
+        try {
+            // Obter dados da equipa
+            List<Map<String, Object>> teams = apiClient.getAllTeams();
+            List<Map<String, Object>> users = apiClient.getAllUsers();
+            List<Map<String, Object>> allTasks = apiClient.getAllTasks();
+            
+            StringBuilder report = new StringBuilder();
+            report.append("=== RELATÓRIO DE PERFORMANCE DA EQUIPA ===\n\n");
+            
+            // Estatísticas por equipa
+            for (Map<String, Object> team : teams) {
+                String teamName = getStringValue(team, "name", "Equipa sem nome");
+                Long teamId = getLongValue(team, "id");
+                
+                report.append("EQUIPA: ").append(teamName).append("\n");
+                report.append("----------------------------------------\n");
+                
+                // Contar membros da equipa
+                int teamMembers = 0;
+                for (Map<String, Object> user : users) {
+                    Long userTeamId = getLongValue(user, "teamId");
+                    if (teamId != null && teamId.equals(userTeamId)) {
+                        teamMembers++;
+                    }
+                }
+                report.append("Membros: ").append(teamMembers).append("\n");
+                
+                // Estatísticas de tarefas da equipa
+                int teamTasks = 0;
+                int completedTasks = 0;
+                
+                for (Map<String, Object> task : allTasks) {
+                    Long taskTeamId = getLongValue(task, "teamId");
+                    if (teamId != null && teamId.equals(taskTeamId)) {
+                        teamTasks++;
+                        String status = getStringValue(task, "status", "");
+                        if ("Concluída".equalsIgnoreCase(status) || "COMPLETED".equalsIgnoreCase(status)) {
+                            completedTasks++;
+                        }
+                        // Verificar se está atrasada (simplificado)
+                        String dueDateStr = getStringValue(task, "dueDate", "");
+                        if (!dueDateStr.isEmpty() && "Pendente".equalsIgnoreCase(status)) {
+                            // Pode adicionar lógica de data aqui
+                        }
+                    }
+                }
+                
+                report.append("Tarefas totais: ").append(teamTasks).append("\n");
+                report.append("Tarefas concluídas: ").append(completedTasks).append("\n");
+                
+                if (teamTasks > 0) {
+                    double completionRate = (completedTasks * 100.0) / teamTasks;
+                    report.append("Taxa de conclusão: ").append(String.format("%.1f%%", completionRate)).append("\n");
+                }
+                
+                report.append("\n");
+            }
+            
+            // Estatísticas individuais dos membros
+            report.append("\n=== PERFORMANCE INDIVIDUAL ===\n\n");
+            for (Map<String, Object> user : users) {
+                String userName = getStringValue(user, "name", "Utilizador sem nome");
+                Long userId = getLongValue(user, "id");
+                
+                int userTasks = 0;
+                int userCompleted = 0;
+                
+                for (Map<String, Object> task : allTasks) {
+                    Long assignedUserId = getLongValue(task, "assignedUserId");
+                    if (userId != null && userId.equals(assignedUserId)) {
+                        userTasks++;
+                        String status = getStringValue(task, "status", "");
+                        if ("Concluída".equalsIgnoreCase(status) || "COMPLETED".equalsIgnoreCase(status)) {
+                            userCompleted++;
+                        }
+                    }
+                }
+                
+                if (userTasks > 0) {
+                    double userCompletionRate = (userCompleted * 100.0) / userTasks;
+                    report.append(userName).append(": ")
+                          .append(userCompleted).append("/").append(userTasks)
+                          .append(" (").append(String.format("%.1f%%", userCompletionRate)).append(")\n");
+                }
+            }
+            
+            // Exibir relatório
+            JDialog reportDialog = new JDialog((JFrame) SwingUtilities.getWindowAncestor(this), 
+                                             "Relatório de Performance da Equipa", true);
+            reportDialog.setSize(700, 500);
+            reportDialog.setLocationRelativeTo(this);
+
+            JTextArea reportArea = new JTextArea(report.toString());
+            reportArea.setEditable(false);
+            reportArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 11));
+            
+            JScrollPane scrollPane = new JScrollPane(reportArea);
+            reportDialog.add(scrollPane, BorderLayout.CENTER);
+            
+            JPanel buttonPanel = new JPanel(new FlowLayout());
+            JButton closeButton = new JButton("Fechar");
+            closeButton.addActionListener(e -> reportDialog.dispose());
+            buttonPanel.add(closeButton);
+            
+            reportDialog.add(buttonPanel, BorderLayout.SOUTH);
+            reportDialog.setVisible(true);
+            
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, 
+                "Erro ao gerar relatório de performance: " + e.getMessage(),
+                "Erro", JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     private void exportTeamData() {
-        JOptionPane.showMessageDialog(this, "Exportar Dados - Implementar", 
-            "Exportar", JOptionPane.INFORMATION_MESSAGE);
+        try {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Exportar Dados da Equipa");
+            fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Arquivos CSV", "csv"));
+            
+            int userSelection = fileChooser.showSaveDialog(this);
+            
+            if (userSelection == JFileChooser.APPROVE_OPTION) {
+                java.io.File fileToSave = fileChooser.getSelectedFile();
+                String filePath = fileToSave.getAbsolutePath();
+                if (!filePath.endsWith(".csv")) {
+                    filePath += ".csv";
+                }
+                
+                // Obter dados
+                List<Map<String, Object>> teams = apiClient.getAllTeams();
+                List<Map<String, Object>> users = apiClient.getAllUsers();
+                List<Map<String, Object>> allTasks = apiClient.getAllTasks();
+                
+                // Criar CSV
+                java.io.FileWriter csvWriter = new java.io.FileWriter(filePath);
+                csvWriter.append("Equipa,Membro,Cargo,Email,Tarefas Totais,Tarefas Concluídas,Taxa Conclusão (%)\n");
+                
+                for (Map<String, Object> team : teams) {
+                    String teamName = getStringValue(team, "name", "Equipa sem nome");
+                    Long teamId = getLongValue(team, "id");
+                    
+                    for (Map<String, Object> user : users) {
+                        Long userTeamId = getLongValue(user, "teamId");
+                        if (teamId != null && teamId.equals(userTeamId)) {
+                            String userName = getStringValue(user, "name", "Nome não disponível");
+                            String userRole = getStringValue(user, "role", "Função não definida");
+                            String userEmail = getStringValue(user, "email", "Email não disponível");
+                            
+                            // Contar tarefas do utilizador
+                            Long userId = getLongValue(user, "id");
+                            int userTasks = 0;
+                            int userCompleted = 0;
+                            
+                            for (Map<String, Object> task : allTasks) {
+                                Long assignedUserId = getLongValue(task, "assignedUserId");
+                                if (userId != null && userId.equals(assignedUserId)) {
+                                    userTasks++;
+                                    String status = getStringValue(task, "status", "");
+                                    if ("Concluída".equalsIgnoreCase(status) || "COMPLETED".equalsIgnoreCase(status)) {
+                                        userCompleted++;
+                                    }
+                                }
+                            }
+                            
+                            double completionRate = userTasks > 0 ? (userCompleted * 100.0) / userTasks : 0.0;
+                            
+                            csvWriter.append(String.format("%s,%s,%s,%s,%d,%d,%.1f\n",
+                                escapeCSV(teamName),
+                                escapeCSV(userName),
+                                escapeCSV(userRole),
+                                escapeCSV(userEmail),
+                                userTasks,
+                                userCompleted,
+                                completionRate));
+                        }
+                    }
+                }
+                
+                csvWriter.flush();
+                csvWriter.close();
+                
+                JOptionPane.showMessageDialog(this, 
+                    "Dados exportados com sucesso para:\n" + filePath,
+                    "Exportação Concluída", JOptionPane.INFORMATION_MESSAGE);
+            }
+            
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, 
+                "Erro ao exportar dados: " + e.getMessage(),
+                "Erro", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private String escapeCSV(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
     }
     
     private void openAssignTaskDialog() {
@@ -417,8 +722,184 @@ public class ManagerDashboardPanel extends DashboardBasePanel {
     }
     
     private void openTeamManagementDialog() {
-        JOptionPane.showMessageDialog(this, "Diálogo de Gestão de Equipa - Implementar", 
-            "Gerir Equipa", JOptionPane.INFORMATION_MESSAGE);
+        try {
+            List<Map<String, Object>> teams = apiClient.getAllTeams();
+            List<Map<String, Object>> users = apiClient.getAllUsers();
+            
+            JDialog dialog = new JDialog((JFrame) SwingUtilities.getWindowAncestor(this), 
+                                       "Gestão de Equipas", true);
+            dialog.setSize(800, 600);
+            dialog.setLocationRelativeTo(this);
+            
+            JPanel mainPanel = new JPanel(new BorderLayout());
+            
+            // Painel superior - seleção de equipa
+            JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            topPanel.add(new JLabel("Equipa:"));
+            
+            DefaultComboBoxModel<String> teamModel = new DefaultComboBoxModel<>();
+            JComboBox<String> teamCombo = new JComboBox<>(teamModel);
+            
+            // Popular combo com equipas
+            for (Map<String, Object> team : teams) {
+                String teamName = getStringValue(team, "name", "Equipa sem nome");
+                teamModel.addElement(teamName);
+            }
+            
+            topPanel.add(teamCombo);
+            mainPanel.add(topPanel, BorderLayout.NORTH);
+            
+            // Painel central - lista de membros
+            DefaultListModel<String> memberListModel = new DefaultListModel<>();
+            JList<String> memberList = new JList<>(memberListModel);
+            memberList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            
+            JScrollPane memberScrollPane = new JScrollPane(memberList);
+            memberScrollPane.setBorder(BorderFactory.createTitledBorder("Membros da Equipa"));
+            
+            // Painel direito - detalhes do membro
+            JPanel detailPanel = new JPanel(new GridBagLayout());
+            detailPanel.setBorder(BorderFactory.createTitledBorder("Detalhes do Membro"));
+            
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.anchor = GridBagConstraints.WEST;
+            
+            gbc.gridx = 0; gbc.gridy = 0;
+            detailPanel.add(new JLabel("Nome:"), gbc);
+            JTextField nameField = new JTextField(20);
+            nameField.setEditable(false);
+            gbc.gridx = 1;
+            detailPanel.add(nameField, gbc);
+            
+            gbc.gridx = 0; gbc.gridy = 1;
+            detailPanel.add(new JLabel("Email:"), gbc);
+            JTextField emailField = new JTextField(20);
+            emailField.setEditable(false);
+            gbc.gridx = 1;
+            detailPanel.add(emailField, gbc);
+            
+            gbc.gridx = 0; gbc.gridy = 2;
+            detailPanel.add(new JLabel("Função:"), gbc);
+            JTextField roleField = new JTextField(20);
+            roleField.setEditable(false);
+            gbc.gridx = 1;
+            detailPanel.add(roleField, gbc);
+            
+            gbc.gridx = 0; gbc.gridy = 3;
+            detailPanel.add(new JLabel("Tarefas:"), gbc);
+            JTextField tasksField = new JTextField(20);
+            tasksField.setEditable(false);
+            gbc.gridx = 1;
+            detailPanel.add(tasksField, gbc);
+            
+            // Panel central dividido
+            JPanel centerPanel = new JPanel(new BorderLayout());
+            centerPanel.add(memberScrollPane, BorderLayout.WEST);
+            centerPanel.add(detailPanel, BorderLayout.CENTER);
+            
+            mainPanel.add(centerPanel, BorderLayout.CENTER);
+            
+            // Função para actualizar lista de membros
+            Runnable updateMemberList = () -> {
+                memberListModel.clear();
+                nameField.setText("");
+                emailField.setText("");
+                roleField.setText("");
+                tasksField.setText("");
+                
+                int selectedTeamIndex = teamCombo.getSelectedIndex();
+                if (selectedTeamIndex >= 0 && selectedTeamIndex < teams.size()) {
+                    Map<String, Object> selectedTeam = teams.get(selectedTeamIndex);
+                    Long teamId = getLongValue(selectedTeam, "id");
+                    
+                    for (Map<String, Object> user : users) {
+                        Long userTeamId = getLongValue(user, "teamId");
+                        if (teamId != null && teamId.equals(userTeamId)) {
+                            String userName = getStringValue(user, "name", "Nome não disponível");
+                            memberListModel.addElement(userName);
+                        }
+                    }
+                }
+            };
+            
+            // Listener para mudança de equipa
+            teamCombo.addActionListener(e -> updateMemberList.run());
+            
+            // Listener para seleção de membro
+            memberList.addListSelectionListener(e -> {
+                if (!e.getValueIsAdjusting()) {
+                    String selectedMember = memberList.getSelectedValue();
+                    if (selectedMember != null) {
+                        // Encontrar o utilizador selecionado
+                        for (Map<String, Object> user : users) {
+                            String userName = getStringValue(user, "name", "");
+                            if (userName.equals(selectedMember)) {
+                                nameField.setText(userName);
+                                emailField.setText(getStringValue(user, "email", ""));
+                                roleField.setText(getStringValue(user, "role", ""));
+                                
+                                // Contar tarefas
+                                Long userId = getLongValue(user, "id");
+                                try {
+                                    List<Map<String, Object>> userTasks = apiClient.getUserTasks(userId);
+                                    tasksField.setText(String.valueOf(userTasks.size()));
+                                } catch (Exception ex) {
+                                    tasksField.setText("Erro");
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Botões
+            JPanel buttonPanel = new JPanel(new FlowLayout());
+            JButton refreshButton = new JButton("Actualizar");
+            JButton closeButton = new JButton("Fechar");
+            
+            refreshButton.addActionListener(e -> {
+                try {
+                    // Recarregar dados
+                    teams.clear();
+                    teams.addAll(apiClient.getAllTeams());
+                    users.clear();
+                    users.addAll(apiClient.getAllUsers());
+                    
+                    teamModel.removeAllElements();
+                    for (Map<String, Object> team : teams) {
+                        String teamName = getStringValue(team, "name", "Equipa sem nome");
+                        teamModel.addElement(teamName);
+                    }
+                    
+                    updateMemberList.run();
+                    
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(dialog, 
+                        "Erro ao actualizar dados: " + ex.getMessage(),
+                        "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+            
+            closeButton.addActionListener(e -> dialog.dispose());
+            
+            buttonPanel.add(refreshButton);
+            buttonPanel.add(closeButton);
+            mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+            
+            dialog.add(mainPanel);
+            
+            // Carregar dados iniciais
+            updateMemberList.run();
+            
+            dialog.setVisible(true);
+            
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, 
+                "Erro ao abrir gestão de equipas: " + e.getMessage(),
+                "Erro", JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     private void showErrorMessage(String message) {
@@ -428,6 +909,27 @@ public class ManagerDashboardPanel extends DashboardBasePanel {
             }
             JOptionPane.showMessageDialog(this, message, "Erro", JOptionPane.ERROR_MESSAGE);
         });
+    }
+    
+    private String getStringValue(Map<String, Object> map, String key, String defaultValue) {
+        Object value = map.get(key);
+        return value != null ? value.toString() : defaultValue;
+    }
+    
+    private int getIntValue(Map<String, Object> map, String key, int defaultValue) {
+        Object value = map.get(key);
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        return defaultValue;
+    }
+    
+    private Long getLongValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        return null;
     }
     
     // Classe interna para items do ComboBox de equipas

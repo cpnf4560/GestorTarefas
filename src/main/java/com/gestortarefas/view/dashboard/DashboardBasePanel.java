@@ -237,7 +237,7 @@ public class DashboardBasePanel extends JPanel {
         }
     }
     
-    private int getIntValue(Map<String, Object> map, String key) {
+    protected int getIntValue(Map<String, Object> map, String key) {
         Object value = map.get(key);
         if (value instanceof Number) {
             return ((Number) value).intValue();
@@ -365,7 +365,7 @@ public class DashboardBasePanel extends JPanel {
         }
     }
     
-    private void showTaskDetails(TaskItem task) {
+    protected void showTaskDetails(TaskItem task) {
         String details = String.format(
             "ID: %d%nTítulo: %s%nDescrição: %s%nStatus: %s%nPrioridade: %s%nUtilizador: %s%nAtrasada: %s",
             task.getId(),
