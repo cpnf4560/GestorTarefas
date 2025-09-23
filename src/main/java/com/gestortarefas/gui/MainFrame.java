@@ -2,6 +2,7 @@ package com.gestortarefas.gui;
 
 import com.gestortarefas.util.HttpUtil;
 import com.gestortarefas.util.CSVExporter;
+import com.gestortarefas.util.I18nManager;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -29,40 +30,49 @@ public class MainFrame extends JFrame {
     private JTextField searchField;
     private JLabel userLabel;
     private JLabel statsLabel;
+    private JButton languageButton;
+    private I18nManager i18n;
     
-    // Constantes para colunas da tabela
-    private static final String[] COLUMN_NAMES = {
-        "ID", "Título", "Status", "Prioridade", "Criado", "Data Limite", "Descrição"
-    };
+    // Constantes para colunas da tabela (serão traduzidas dinamicamente)
+    private String[] columnNames;
 
     public MainFrame(Map<String, Object> user) {
         this.currentUser = user;
+        this.i18n = I18nManager.getInstance();
         
         initializeComponents();
         setupLayout();
         setupEventListeners();
         loadTasks();
         updateStats();
+        updateLanguage(); // Atualizar textos iniciais
     }
 
     private void initializeComponents() {
-        setTitle("Gestor de Tarefas - " + currentUser.get("username"));
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1200, 800); // Definir tamanho padrão adequado
-        setLocationRelativeTo(null); // Centralizar na tela
-        setMinimumSize(new Dimension(800, 600)); // Tamanho mínimo
+        // Inicializar colunas da tabela
+        updateColumnNames();
+        
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        setSize(1200, 800);
+        setLocationRelativeTo(null);
+        setMinimumSize(new Dimension(800, 600));
         
         // Componentes da interface
-        userLabel = new JLabel("Utilizador: " + currentUser.get("fullName"));
+        userLabel = new JLabel();
         userLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
         
-        statsLabel = new JLabel("Carregando estatísticas...");
+        statsLabel = new JLabel();
+        
+        // Botão de idioma
+        languageButton = new JButton("PT/EN");
+        languageButton.setPreferredSize(new Dimension(60, 25));
+        languageButton.addActionListener(e -> toggleLanguage());
         
         // Tabela de tarefas
-        tableModel = new DefaultTableModel(COLUMN_NAMES, 0) {
+        tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Tabela só de leitura
+                return false;
             }
         };
         
@@ -71,13 +81,7 @@ public class MainFrame extends JFrame {
         tasksTable.setRowHeight(25);
         
         // Configurar larguras das colunas
-        tasksTable.getColumnModel().getColumn(0).setPreferredWidth(50);  // ID
-        tasksTable.getColumnModel().getColumn(1).setPreferredWidth(200); // Título
-        tasksTable.getColumnModel().getColumn(2).setPreferredWidth(100); // Status
-        tasksTable.getColumnModel().getColumn(3).setPreferredWidth(100); // Prioridade
-        tasksTable.getColumnModel().getColumn(4).setPreferredWidth(120); // Criado
-        tasksTable.getColumnModel().getColumn(5).setPreferredWidth(120); // Data Limite
-        tasksTable.getColumnModel().getColumn(6).setPreferredWidth(300); // Descrição
+        setupColumnWidths();
         
         // Ocultar coluna ID
         tasksTable.getColumnModel().getColumn(0).setMinWidth(0);
@@ -85,7 +89,8 @@ public class MainFrame extends JFrame {
         tasksTable.getColumnModel().getColumn(0).setPreferredWidth(0);
         
         // Filtros
-        statusFilter = new JComboBox<>(new String[]{"Todos", "PENDENTE", "EM_ANDAMENTO", "CONCLUIDA", "CANCELADA"});
+        statusFilter = new JComboBox<>();
+        updateStatusFilter();
         searchField = new JTextField(20);
         
         // Configurar ordenação
@@ -106,6 +111,8 @@ public class MainFrame extends JFrame {
         userPanel.add(statsLabel);
         
         JPanel filtersPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        filtersPanel.add(languageButton); // Adicionar botão de idioma
+        filtersPanel.add(Box.createHorizontalStrut(10));
         filtersPanel.add(new JLabel("Filtrar por status:"));
         filtersPanel.add(statusFilter);
         filtersPanel.add(Box.createHorizontalStrut(10));
@@ -163,6 +170,14 @@ public class MainFrame extends JFrame {
     }
 
     private void setupEventListeners() {
+        // Listener para fechar aplicação com confirmação
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                confirmExit();
+            }
+        });
+        
         // Filtro por status
         statusFilter.addActionListener(e -> filterTasks());
         
@@ -459,10 +474,142 @@ public class MainFrame extends JFrame {
         }).start();
     }
 
+    // Métodos para internacionalização PT/EN
+    private void updateColumnNames() {
+        columnNames = new String[] {
+            "ID",
+            i18n.getText("name"),
+            i18n.getText("status"),
+            i18n.getText("priority"),
+            i18n.getText("created_at"),
+            i18n.getText("due_date"),
+            i18n.getText("description")
+        };
+    }
+    
+    private void setupColumnWidths() {
+        if (tasksTable.getColumnCount() >= 7) {
+            tasksTable.getColumnModel().getColumn(0).setPreferredWidth(50);  // ID
+            tasksTable.getColumnModel().getColumn(1).setPreferredWidth(200); // Nome
+            tasksTable.getColumnModel().getColumn(2).setPreferredWidth(100); // Status
+            tasksTable.getColumnModel().getColumn(3).setPreferredWidth(100); // Prioridade
+            tasksTable.getColumnModel().getColumn(4).setPreferredWidth(120); // Criado
+            tasksTable.getColumnModel().getColumn(5).setPreferredWidth(120); // Data Limite
+            tasksTable.getColumnModel().getColumn(6).setPreferredWidth(300); // Descrição
+        }
+    }
+    
+    private void updateStatusFilter() {
+        statusFilter.removeAllItems();
+        statusFilter.addItem("Todos");
+        statusFilter.addItem(i18n.getText("pending"));
+        statusFilter.addItem(i18n.getText("in_progress"));
+        statusFilter.addItem(i18n.getText("completed"));
+        statusFilter.addItem(i18n.getText("cancelled"));
+    }
+    
+    private void toggleLanguage() {
+        i18n.toggleLanguage();
+        updateLanguage();
+    }
+    
+    private void updateLanguage() {
+        // Atualizar título da janela
+        setTitle(i18n.getText("title") + " - " + currentUser.get("username"));
+        
+        // Atualizar label do utilizador
+        userLabel.setText(i18n.getText("user") + ": " + currentUser.get("fullName"));
+        
+        // Atualizar nomes das colunas da tabela
+        updateColumnNames();
+        for (int i = 0; i < columnNames.length && i < tableModel.getColumnCount(); i++) {
+            tasksTable.getColumnModel().getColumn(i).setHeaderValue(columnNames[i]);
+        }
+        tasksTable.getTableHeader().repaint();
+        
+        // Atualizar filtros
+        String selectedStatus = (String) statusFilter.getSelectedItem();
+        updateStatusFilter();
+        statusFilter.setSelectedItem(selectedStatus);
+        
+        // Atualizar todos os componentes visuais
+        updateAllComponents();
+        
+        // Forçar repaint da interface
+        revalidate();
+        repaint();
+    }
+    
+    private void updateAllComponents() {
+        // Encontrar e atualizar todos os botões e labels na interface
+        updateComponentsRecursively(this);
+    }
+    
+    private void updateComponentsRecursively(Container container) {
+        for (Component component : container.getComponents()) {
+            if (component instanceof JButton) {
+                JButton button = (JButton) component;
+                String text = button.getText();
+                
+                // Mapear textos dos botões
+                switch (text) {
+                    case "Nova Tarefa":
+                    case "New Task":
+                        button.setText(i18n.getText("add") + " " + i18n.getText("tasks"));
+                        break;
+                    case "Editar Tarefa":
+                    case "Edit Task":
+                        button.setText(i18n.getText("edit") + " " + i18n.getText("tasks"));
+                        break;
+                    case "Eliminar Tarefa":
+                    case "Delete Task":
+                        button.setText(i18n.getText("delete") + " " + i18n.getText("tasks"));
+                        break;
+                    case "Marcar Concluída":
+                    case "Mark Completed":
+                        button.setText(i18n.getText("completed"));
+                        break;
+                    case "Actualizar":
+                    case "Refresh":
+                        button.setText(i18n.getText("refresh"));
+                        break;
+                    case "Exportar CSV":
+                    case "Export CSV":
+                        button.setText(i18n.getText("export_csv"));
+                        break;
+                    case "Logout":
+                        button.setText(i18n.getText("logout"));
+                        break;
+                }
+            } else if (component instanceof JLabel) {
+                JLabel label = (JLabel) component;
+                String text = label.getText();
+                
+                if (text.contains("Filtrar por status") || text.contains("Filter by status")) {
+                    label.setText(i18n.getText("filter") + " por " + i18n.getText("status") + ":");
+                } else if (text.contains("Pesquisar") || text.contains("Search")) {
+                    label.setText(i18n.getText("search") + ":");
+                }
+            } else if (component instanceof Container) {
+                updateComponentsRecursively((Container) component);
+            }
+        }
+    }
+
+    private void confirmExit() {
+        int result = JOptionPane.showConfirmDialog(this,
+            i18n.getText("confirm_exit"),
+            i18n.getText("exit"), JOptionPane.YES_NO_OPTION);
+            
+        if (result == JOptionPane.YES_OPTION) {
+            System.exit(0);
+        }
+    }
+
     private void logout() {
         int result = JOptionPane.showConfirmDialog(this,
-            "Tem certeza que deseja sair?",
-            "Confirmar logout", JOptionPane.YES_NO_OPTION);
+            i18n.getText("confirm_exit"),
+            i18n.getText("logout"), JOptionPane.YES_NO_OPTION);
             
         if (result == JOptionPane.YES_OPTION) {
             dispose();

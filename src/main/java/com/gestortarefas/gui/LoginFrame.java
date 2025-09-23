@@ -1,6 +1,7 @@
 package com.gestortarefas.gui;
 
 import com.gestortarefas.util.HttpUtil;
+import com.gestortarefas.util.I18nManager;
 
 import javax.swing.*;
 import java.awt.*;
@@ -17,30 +18,34 @@ public class LoginFrame extends JFrame {
     private JPasswordField passwordField;
     private JButton loginButton;
     private JButton registerButton;
+    private JButton languageButton;
     private JLabel statusLabel;
+    private JLabel usernameLabel;
+    private JLabel passwordLabel;
+    private I18nManager i18n;
 
     public LoginFrame() {
+        this.i18n = I18nManager.getInstance();
         initializeComponents();
         setupLayout();
         setupEventListeners();
+        updateLanguage();
         
         // Aguardar a API estar disponível
         checkApiConnection();
     }
 
     private void initializeComponents() {
-        setTitle("Gestor de Tarefas - Login");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setResizable(false);
         
-        // Configurar Look and Feel
-        /*
-        try {
-            UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeel());
-        } catch (Exception e) {
-            // Usar look padrão se não conseguir
-        }
-        */
+        // Listener para fechar aplicação com confirmação
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                confirmExit();
+            }
+        });
         
         usernameField = new JTextField(20);
         usernameField.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
@@ -56,7 +61,7 @@ public class LoginFrame extends JFrame {
             BorderFactory.createEmptyBorder(8, 12, 8, 12)
         ));
         
-        loginButton = new JButton("Entrar");
+        loginButton = new JButton();
         loginButton.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
         loginButton.setBackground(Colors.MAGASTEEL_BLUE);
         loginButton.setForeground(Color.WHITE);
@@ -64,13 +69,27 @@ public class LoginFrame extends JFrame {
         loginButton.setBorderPainted(false);
         loginButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         
-        registerButton = new JButton("Registar");
+        registerButton = new JButton();
         registerButton.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
         registerButton.setBackground(Colors.LIGHT_GRAY);
         registerButton.setForeground(Colors.DARK_GRAY);
         registerButton.setFocusPainted(false);
         registerButton.setBorderPainted(false);
         registerButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        
+        // Botão de idioma
+        languageButton = new JButton("PT/EN");
+        languageButton.setPreferredSize(new Dimension(60, 25));
+        languageButton.addActionListener(e -> toggleLanguage());
+        
+        // Labels para textos traduzíveis
+        usernameLabel = new JLabel();
+        usernameLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
+        usernameLabel.setForeground(Colors.DARK_GRAY);
+        
+        passwordLabel = new JLabel();
+        passwordLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
+        passwordLabel.setForeground(Colors.DARK_GRAY);
         
         statusLabel = new JLabel(" ");
         statusLabel.setForeground(Colors.ERROR_RED);
@@ -87,6 +106,11 @@ public class LoginFrame extends JFrame {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(15, 10, 15, 10);
         
+        // Botão de idioma no canto superior direito
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        topPanel.setBackground(Colors.SOFT_WHITE);
+        topPanel.add(languageButton);
+        
         // Título
         JLabel titleLabel = new JLabel("Gestor de Tarefas", JLabel.CENTER);
         titleLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 28));
@@ -96,21 +120,15 @@ public class LoginFrame extends JFrame {
         
         gbc.gridwidth = 1;
         
-                // Utilizador
-        JLabel userLabel = new JLabel("Utilizador:");
-        userLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
-        userLabel.setForeground(Colors.DARK_GRAY);
+        // Utilizador
         gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 1; gbc.anchor = GridBagConstraints.WEST;
-        mainPanel.add(userLabel, gbc);
+        mainPanel.add(usernameLabel, gbc);
         gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 2; gbc.fill = GridBagConstraints.HORIZONTAL;
         mainPanel.add(usernameField, gbc);
         
         // Senha
-        JLabel passLabel = new JLabel("Senha:");
-        passLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14));
-        passLabel.setForeground(Colors.DARK_GRAY);
         gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 1; gbc.fill = GridBagConstraints.NONE; gbc.anchor = GridBagConstraints.WEST;
-        mainPanel.add(passLabel, gbc);
+        mainPanel.add(passwordLabel, gbc);
         gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2; gbc.fill = GridBagConstraints.HORIZONTAL;
         mainPanel.add(passwordField, gbc);
         
@@ -129,6 +147,7 @@ public class LoginFrame extends JFrame {
         gbc.gridx = 0; gbc.gridy = 6; gbc.gridwidth = 2;
         mainPanel.add(statusLabel, gbc);
         
+        add(topPanel, BorderLayout.NORTH);
         add(mainPanel, BorderLayout.CENTER);
         
         // Definir cor de fundo da janela
@@ -265,6 +284,39 @@ public class LoginFrame extends JFrame {
     private void showStatus(String message, Color color) {
         statusLabel.setText(message);
         statusLabel.setForeground(color);
+    }
+    
+    // Métodos para internacionalização PT/EN
+    private void toggleLanguage() {
+        i18n.toggleLanguage();
+        updateLanguage();
+    }
+    
+    private void updateLanguage() {
+        // Atualizar título da janela
+        setTitle(i18n.getText("title") + " - " + i18n.getText("login"));
+        
+        // Atualizar labels
+        usernameLabel.setText(i18n.getText("username") + ":");
+        passwordLabel.setText(i18n.getText("password") + ":");
+        
+        // Atualizar botões
+        loginButton.setText(i18n.getText("login"));
+        registerButton.setText("Register"); // Manter consistente
+        
+        // Forçar repaint
+        revalidate();
+        repaint();
+    }
+    
+    private void confirmExit() {
+        int result = JOptionPane.showConfirmDialog(this,
+            i18n.getText("confirm_exit"),
+            i18n.getText("exit"), JOptionPane.YES_NO_OPTION);
+            
+        if (result == JOptionPane.YES_OPTION) {
+            System.exit(0);
+        }
     }
 
     public void onRegistrationSuccess(String message) {
