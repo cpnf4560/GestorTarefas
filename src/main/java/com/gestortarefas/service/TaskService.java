@@ -17,31 +17,53 @@ import java.util.Map;
 import java.util.HashMap;
 
 /**
- * Serviço para gestão de tarefas
+ * Serviço de negócio para gestão de tarefas.
+ * 
+ * Esta classe contém toda a lógica de negócio relacionada com tarefas:
+ * - Criação, atualização e remoção de tarefas
+ * - Gestão de estados e transições (workflow)
+ * - Validações de negócio
+ * - Cálculos de estatísticas e relatórios
+ * - Operações transacionais
+ * 
+ * Todas as operações são transacionais (@Transactional) para garantir
+ * consistência dos dados.
  */
 @Service
-@Transactional
+@Transactional // Todas as operações são transacionais
 public class TaskService {
 
+    // Repositório para acesso aos dados das tarefas
     @Autowired
     private TaskRepository taskRepository;
 
     /**
-     * Cria uma nova tarefa
+     * Cria uma nova tarefa com informações básicas.
+     * 
+     * A tarefa é criada com estado PENDENTE por defeito.
+     * Se a prioridade for null, usa NORMAL como padrão.
+     * 
+     * @param title Título da tarefa (obrigatório)
+     * @param description Descrição detalhada (opcional)
+     * @param priority Prioridade da tarefa (BAIXA, NORMAL, ALTA, URGENTE)
+     * @param user Utilizador responsável pela tarefa
+     * @return Task criada e persistida na base de dados
      */
     public Task createTask(String title, String description, TaskPriority priority, User user) {
         Task task = new Task();
         task.setTitle(title);
         task.setDescription(description);
-        task.setPriority(priority != null ? priority : TaskPriority.NORMAL);
+        task.setPriority(priority != null ? priority : TaskPriority.NORMAL); // Valor padrão
         task.setUser(user);
-        task.setStatus(TaskStatus.PENDENTE);
+        task.setStatus(TaskStatus.PENDENTE); // Estado inicial
         
         return taskRepository.save(task);
     }
 
     /**
-     * Cria uma nova tarefa com data limite
+     * Cria uma nova tarefa com data limite definida.
+     * 
+     * Utiliza o método createTask() base e adiciona a data limite.
      */
     public Task createTask(String title, String description, TaskPriority priority, 
                           LocalDateTime dueDate, User user) {

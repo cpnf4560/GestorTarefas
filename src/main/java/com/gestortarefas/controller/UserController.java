@@ -267,6 +267,7 @@ public class UserController {
         userResponse.put("fullName", user.getFullName());
         userResponse.put("active", user.getActive());
         userResponse.put("createdAt", user.getCreatedAt());
+        userResponse.put("role", user.getRole().name());
         return userResponse;
     }
 }

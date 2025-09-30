@@ -7,33 +7,51 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.LocalDateTime;
 
 /**
- * Entidade que representa uma tarefa no sistema
+ * Entidade JPA que representa uma tarefa no sistema de gestão.
+ * 
+ * Uma tarefa contém informações como título, descrição, status, prioridade,
+ * datas importantes e relacionamentos com utilizadores e equipas.
+ * 
+ * Estados possíveis:
+ * - PENDENTE: tarefa criada mas não iniciada
+ * - EM_ANDAMENTO: tarefa em execução
+ * - CONCLUIDA: tarefa finalizada com sucesso
+ * - CANCELADA: tarefa cancelada
+ * 
+ * Prioridades:
+ * - BAIXA, NORMAL, ALTA, URGENTE
  */
 @Entity
 @Table(name = "tasks")
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // Ignora propriedades do Hibernate no JSON
 public class Task {
 
+    // Identificador único da tarefa
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Título da tarefa (obrigatório, 3-100 caracteres)
     @NotBlank(message = "Título é obrigatório")
     @Size(min = 3, max = 100, message = "Título deve ter entre 3 e 100 caracteres")
     @Column(nullable = false)
     private String title;
 
+    // Descrição detalhada da tarefa (opcional, até 500 caracteres)
+    // columnDefinition = "TEXT" permite textos longos no MySQL
     @Size(max = 500, message = "Descrição não pode exceder 500 caracteres")
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Enumerated(EnumType.STRING)
+    // Estado atual da tarefa (PENDENTE, EM_ANDAMENTO, CONCLUIDA, CANCELADA)
+    @Enumerated(EnumType.STRING) // Armazena como String na BD
     @Column(nullable = false)
-    private TaskStatus status = TaskStatus.PENDENTE;
+    private TaskStatus status = TaskStatus.PENDENTE; // Valor padrão
 
-    @Enumerated(EnumType.STRING)
+    // Prioridade da tarefa (BAIXA, NORMAL, ALTA, URGENTE)
+    @Enumerated(EnumType.STRING) // Armazena como String na BD
     @Column(nullable = false)
-    private TaskPriority priority = TaskPriority.NORMAL;
+    private TaskPriority priority = TaskPriority.NORMAL; // Valor padrão
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

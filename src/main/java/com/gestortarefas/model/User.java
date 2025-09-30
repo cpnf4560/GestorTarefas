@@ -10,30 +10,44 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Entidade que representa um utilizador do sistema
+ * Entidade JPA que representa um utilizador do sistema de gestão de tarefas.
+ * 
+ * Esta entidade mapeia para a tabela 'users' na base de dados e contém
+ * informações básicas do utilizador como credenciais, perfil e relacionamentos
+ * com tarefas e equipas.
+ * 
+ * Relacionamentos:
+ * - OneToMany com Task (tarefas atribuídas ao utilizador)
+ * - ManyToMany com Team (equipas das quais o utilizador faz parte)
+ * - OneToOne com UserProfile (perfil detalhado do utilizador)
+ * - OneToMany com Team como manager (equipas que o utilizador gere)
  */
 @Entity
 @Table(name = "users")
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // Ignora propriedades do Hibernate no JSON
 public class User {
 
+    // Identificador único gerado automaticamente pela base de dados
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Nome de utilizador único para login (validado entre 3-50 caracteres)
     @NotBlank(message = "Nome de utilizador é obrigatório")
     @Size(min = 3, max = 50, message = "Nome de utilizador deve ter entre 3 e 50 caracteres")
     @Column(unique = true, nullable = false)
     private String username;
 
+    // Email único para comunicações (deve ter formato válido)
     @NotBlank(message = "Email é obrigatório")
     @Email(message = "Email deve ter formato válido")
     @Column(unique = true, nullable = false)
     private String email;
 
+    // Senha criptografada (mínimo 6 caracteres, excluída do JSON por segurança)
     @NotBlank(message = "Senha é obrigatória")
     @Size(min = 6, message = "Senha deve ter pelo menos 6 caracteres")
-    @JsonIgnore
+    @JsonIgnore // Nunca incluir a senha nas respostas JSON
     @Column(nullable = false)
     private String password;
 
@@ -47,32 +61,44 @@ public class User {
     @Column(name = "active")
     private Boolean active = true;
     
+    // Papel do utilizador no sistema (ADMINISTRADOR, GERENTE, FUNCIONARIO)
+    // Armazenado como String na BD para facilitar leitura
     @Enumerated(EnumType.STRING)
     @Column(name = "user_role", nullable = false)
-    private UserRole role = UserRole.FUNCIONARIO;
+    private UserRole role = UserRole.FUNCIONARIO; // Valor padrão: FUNCIONARIO
 
+    // ======================== RELACIONAMENTOS JPA ========================
+    
+    // Tarefas atribuídas a este utilizador
+    // cascade=ALL: operações no User afetam as Tasks
+    // orphanRemoval=true: remove Tasks se não tiverem User
+    // fetch=LAZY: carrega Tasks apenas quando necessário
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JsonIgnore
+    @JsonIgnore // Evita loops infinitos na serialização JSON
     private List<Task> tasks = new ArrayList<>();
     
-    // Relacionamento many-to-many com equipas
+    // Equipas das quais este utilizador é membro (relacionamento N:M)
+    // Tabela de junção 'user_teams' para mapear utilizadores ↔ equipas
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-        name = "user_teams",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "team_id")
+        name = "user_teams", // Nome da tabela de junção
+        joinColumns = @JoinColumn(name = "user_id"), // Chave estrangeira para User
+        inverseJoinColumns = @JoinColumn(name = "team_id") // Chave estrangeira para Team
     )
-    @JsonIgnore
+    @JsonIgnore // Evita loops infinitos na serialização JSON
     private List<Team> teams = new ArrayList<>();
     
-    // Perfil do utilizador
+    // Perfil detalhado do utilizador (relacionamento 1:1)
+    // mappedBy="user": o UserProfile possui a chave estrangeira
+    // cascade=ALL: operações no User afetam o UserProfile
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore
+    @JsonIgnore // Perfil carregado separadamente quando necessário
     private UserProfile profile;
     
-    // Equipas geridas por este utilizador (se for gerente)
+    // Equipas que este utilizador gere (apenas para GERENTE/ADMINISTRADOR)
+    // mappedBy="manager": Team possui a chave estrangeira manager_id
     @OneToMany(mappedBy = "manager", fetch = FetchType.LAZY)
-    @JsonIgnore
+    @JsonIgnore // Equipas geridas carregadas separadamente
     private List<Team> managedTeams = new ArrayList<>();
 
     // Constructors

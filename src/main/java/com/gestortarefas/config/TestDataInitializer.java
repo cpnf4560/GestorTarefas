@@ -14,6 +14,7 @@ import java.util.Random;
 
 /**
  * Inicializa dados de teste na aplicação
+ * ATIVADO - Para criar dados de teste iniciais
  */
 @Component
 public class TestDataInitializer implements CommandLineRunner {
@@ -37,20 +38,29 @@ public class TestDataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        // Só inicializa se não existirem dados
+        // Criar utilizadores se não existirem
+        List<User> users;
         if (userRepository.count() == 0) {
-            System.out.println("=== Inicializando dados de teste ===");
-            
-            // Criar utilizadores
-            List<User> users = createTestUsers();
-            
-            // Criar equipas
-            List<Team> teams = createTestTeams(users);
-            
-            // Criar tarefas
+            System.out.println("=== Inicializando utilizadores de teste ===");
+            users = createTestUsers();
+        } else {
+            users = userRepository.findAll();
+        }
+        
+        // Criar equipas se não existirem
+        List<Team> teams;
+        if (teamRepository.count() == 0) {
+            System.out.println("=== Inicializando equipas de teste ===");
+            teams = createTestTeams(users);
+        } else {
+            teams = teamRepository.findAll();
+        }
+        
+        // Criar tarefas se não existirem
+        if (taskRepository.count() == 0) {
+            System.out.println("=== Inicializando tarefas de teste ===");
             createTestTasks(users, teams);
-            
-            System.out.println("=== Dados de teste criados com sucesso! ===");
+            System.out.println("=== Tarefas de teste criadas com sucesso! ===");
         }
     }
 

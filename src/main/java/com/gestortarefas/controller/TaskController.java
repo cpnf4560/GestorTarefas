@@ -23,19 +23,34 @@ import java.util.HashMap;
 import java.util.Optional;
 
 /**
- * Controlador REST para operações relacionadas às tarefas
+ * Controlador REST para operações relacionadas às tarefas.
+ * 
+ * Este controlador expõe endpoints HTTP para:
+ * - CRUD de tarefas (Create, Read, Update, Delete)
+ * - Gestão de estado das tarefas (PENDENTE → EM_ANDAMENTO → CONCLUIDA)
+ * - Atribuição de tarefas a utilizadores e equipas
+ * - Filtros e pesquisas avançadas
+ * - Gestão de comentários nas tarefas
+ * 
+ * Base URL: /api/tasks
+ * Suporta CORS para permitir chamadas de qualquer origem (desenvolvimento)
  */
 @RestController
 @RequestMapping("/api/tasks")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*") // Permite CORS para desenvolvimento - ATENÇÃO: restringir em produção
 public class TaskController {
 
+    // ======================== INJEÇÃO DE DEPENDÊNCIAS ========================
+    
+    // Serviço principal para lógica de negócio das tarefas
     @Autowired
     private TaskService taskService;
 
+    // Serviço para operações com utilizadores
     @Autowired
     private UserService userService;
 
+    // Repositórios para acesso direto aos dados (quando necessário)
     @Autowired
     private TaskRepository taskRepository;
 

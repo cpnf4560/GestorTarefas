@@ -1,33 +1,89 @@
-# Gestor de Tarefas - Sistema Completo Java
+# 🚀 Gestor de Tarefas - Sistema Híbrido Java
 
-## Descrição do Projeto
+## 📋 Descrição do Projeto
 
-Este é um sistema completo de gestão de tarefas desenvolvido em Java que integra múltiplas tecnologias:
+Sistema completo de gestão de tarefas que integra **Spring Boot** (backend) com **Swing** (frontend), oferecendo uma solução híbrida robusta para gestão empresarial de tarefas e equipas.
 
-- **Frontend**: Interface gráfica em Swing
-- **Backend**: Spring Boot com API REST
-- **Servidor Web**: Tomcat embarcado
-- **Persistência**: JPA/Hibernate com base de dados H2
-- **Validações**: Bean Validation API
-- **Exportação**: Apache Commons CSV
-- **Gestão de Dependências**: Maven
+### 🏗️ Arquitetura do Sistema
 
-## Funcionalidades Principais
+```
+┌─────────────────┐    HTTP/REST    ┌──────────────────┐
+│   Swing GUI     │ ◄──────────────► │   Spring Boot    │
+│   (Frontend)    │                  │   (Backend API)  │
+├─────────────────┤                  ├──────────────────┤
+│ • Login Dialog  │                  │ • REST Controllers│
+│ • Main Window   │                  │ • Business Logic │
+│ • Task Management│                  │ • Data Validation│
+│ • User Profile  │                  │ • Security Config│
+└─────────────────┘                  └──────────────────┘
+                                               │
+                                               ▼
+                                    ┌──────────────────┐
+                                    │   MySQL Database │
+                                    │                  │
+                                    │ • Users & Profiles│
+                                    │ • Tasks & Comments│
+                                    │ • Teams & Members │
+                                    └──────────────────┘
+```
 
-### 🔐 Autenticação
-- Login seguro com validação de credenciais
-- Registro de novos utilizadores
-- Validação de email e senha
-- Criptografia de senhas com BCrypt
+## 🛠️ Stack Tecnológica
 
-### ✅ Gestão de Tarefas
-- Criar, editar e eliminar tarefas
-- Estados: Pendente, Em Andamento, Concluída, Cancelada
-- Prioridades: Baixa, Normal, Alta, Urgente
-- Data limite opcional
-- Filtros por status e pesquisa por título
+### Backend (API REST)
+- **Spring Boot 3.4.1**: Framework principal
+- **Spring Data JPA**: Acesso aos dados
+- **Spring Security**: Autenticação (modo desenvolvimento)
+- **Spring Web**: Controllers REST
+- **Spring Actuator**: Monitorização
+- **Hibernate**: ORM para persistência
+- **MySQL Connector**: Driver de base de dados
+- **Bean Validation**: Validação de dados
 
-### 📊 Estatísticas e Relatórios
+### Frontend (Interface Gráfica)
+- **Java Swing**: Interface gráfica nativa
+- **Custom UI Components**: Componentes personalizados
+- **Layout Managers**: GridBagLayout, BorderLayout
+- **Event Handling**: Padrão Observer
+
+### Base de Dados
+- **MySQL**: Base de dados principal (porta 3307 - XAMPP)
+- **JPA/Hibernate**: Mapeamento objeto-relacional
+- **DDL Auto**: Criação automática de tabelas
+
+### Ferramentas de Desenvolvimento
+- **Maven**: Gestão de dependências e build
+- **Java 21**: Linguagem (compatível com Java 17+)
+- **Git**: Controlo de versões
+
+## 🎯 Funcionalidades Principais
+
+### 🔐 Sistema de Autenticação
+- **Login Multi-perfil**: Admin, Gerente, Funcionário
+- **Utilizadores Demo**: Pré-configurados para teste
+- **Validação de Credenciais**: Email e senha obrigatórios
+- **Sessão Persistente**: Manter login durante utilização
+
+### ✅ Gestão Avançada de Tarefas
+- **CRUD Completo**: Criar, Ler, Atualizar, Eliminar
+- **Estados de Workflow**: 
+  - 🟡 PENDENTE → 🔵 EM_ANDAMENTO → 🟢 CONCLUIDA
+  - ❌ CANCELADA (estado terminal)
+- **Sistema de Prioridades**: BAIXA, NORMAL, ALTA, URGENTE
+- **Datas Inteligentes**: Criação, atualização, prazo, conclusão
+- **Comentários**: Sistema de notas e observações por tarefa
+
+### 👥 Gestão de Equipas
+- **Criação de Equipas**: Organizadas por projeto/departamento
+- **Gestão de Membros**: Adicionar/remover utilizadores
+- **Hierarquia**: Gerentes podem gerir equipas
+- **Atribuição**: Tarefas podem ser atribuídas a equipas
+
+### 👤 Perfis de Utilizador
+- **Perfil Detalhado**: Informações pessoais e profissionais
+- **Configurações**: Preferências de interface e notificações
+- **Histórico**: Registo de atividades e tarefas
+
+### 📊 Dashboard e Relatórios
 - Contador de tarefas por status
 - Identificação de tarefas em atraso
 - Exportação para CSV com múltiplas opções

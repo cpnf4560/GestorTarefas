@@ -29,11 +29,11 @@ public class LoginDialog extends JDialog {
     }
     
     private void initializeComponents() {
-        setSize(500, 450); // Aumentado para mostrar toda a informação
+        setSize(550, 550); // Aumentado para acomodar painel com todos os utilizadores
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(getParent());
         setResizable(true); // Permitir redimensionar
-        setMinimumSize(new Dimension(450, 400)); // Tamanho mínimo
+        setMinimumSize(new Dimension(500, 500)); // Tamanho mínimo maior
         
         // Campos do formulário
         usernameField = new JTextField(20);
@@ -59,16 +59,22 @@ public class LoginDialog extends JDialog {
         
         // Painel principal
         JPanel mainPanel = new JPanel(new GridBagLayout());
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(40, 20, 20, 20)); // Aumentado espaçamento do topo de 20 para 40
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
+        
+        // Espaçamento adicional no topo
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
+        gbc.ipady = 10; // Espaçamento vertical adicional
+        mainPanel.add(new JLabel(" "), gbc);
+        gbc.ipady = 0; // Reset do ipady
         
         // Título
         JLabel titleLabel = new JLabel("🚀 Sistema de Gestão de Tarefas");
         titleLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 20));
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
         titleLabel.setForeground(new Color(70, 130, 180));
-        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
+        gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 2; // Mudou de gridy = 0 para gridy = 1
         gbc.fill = GridBagConstraints.HORIZONTAL;
         mainPanel.add(titleLabel, gbc);
         
@@ -77,18 +83,18 @@ public class LoginDialog extends JDialog {
         subtitleLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
         subtitleLabel.setHorizontalAlignment(SwingConstants.CENTER);
         subtitleLabel.setForeground(Color.GRAY);
-        gbc.gridy = 1;
+        gbc.gridy = 2; // Mudou de gridy = 1 para gridy = 2
         mainPanel.add(subtitleLabel, gbc);
         
         // Espaçamento
-        gbc.gridy = 2;
+        gbc.gridy = 3; // Mudou de gridy = 2 para gridy = 3
         gbc.ipady = 15;
         mainPanel.add(new JLabel(" "), gbc);
         gbc.ipady = 0;
         
         // Campo de utilizador
         gbc.gridwidth = 1;
-        gbc.gridx = 0; gbc.gridy = 3;
+        gbc.gridx = 0; gbc.gridy = 4; // Mudou de gridy = 3 para gridy = 4
         gbc.anchor = GridBagConstraints.EAST;
         JLabel userLabel = new JLabel("👤 Utilizador:");
         userLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
@@ -100,7 +106,7 @@ public class LoginDialog extends JDialog {
         mainPanel.add(usernameField, gbc);
         
         // Campo de password
-        gbc.gridx = 0; gbc.gridy = 4;
+        gbc.gridx = 0; gbc.gridy = 5; // Mudou de gridy = 4 para gridy = 5
         gbc.anchor = GridBagConstraints.EAST;
         gbc.fill = GridBagConstraints.NONE;
         JLabel passwordLabel = new JLabel("🔒 Password:");
@@ -117,14 +123,14 @@ public class LoginDialog extends JDialog {
         buttonPanel.add(loginButton);
         buttonPanel.add(cancelButton);
         
-        gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 2;
+        gbc.gridx = 0; gbc.gridy = 6; gbc.gridwidth = 2; // Mudou de gridy = 5 para gridy = 6
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(20, 5, 5, 5);
         mainPanel.add(buttonPanel, gbc);
         
         // Painel de utilizadores demo
         JPanel demoPanel = createDemoPanel();
-        gbc.gridy = 6;
+        gbc.gridy = 7; // Mudou de gridy = 6 para gridy = 7
         gbc.insets = new Insets(10, 5, 5, 5);
         mainPanel.add(demoPanel, gbc);
         
@@ -132,54 +138,120 @@ public class LoginDialog extends JDialog {
     }
     
     private JPanel createDemoPanel() {
-        JPanel panel = new JPanel(new GridLayout(5, 1, 3, 3)); // Mais espaço entre componentes
-        panel.setBorder(BorderFactory.createTitledBorder(
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBorder(BorderFactory.createTitledBorder(
             BorderFactory.createLineBorder(Color.GRAY), 
-            "👥 Utilizadores Demo (Funcionais)", 
+            "👥 Utilizadores da Simulação Empresarial (29 utilizadores)", 
             0, 0, new Font(Font.SANS_SERIF, Font.BOLD, 12)
         ));
         
-        JLabel infoLabel = new JLabel("<html><center>Utilizadores totalmente funcionais.<br>Clique para preencher automaticamente:</center></html>");
+        // Painel de informação
+        JLabel infoLabel = new JLabel("<html><center>Todos os utilizadores da simulação empresarial.<br>Clique para preencher automaticamente (username/username123):</center></html>");
         infoLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 11));
         infoLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        panel.add(infoLabel);
+        infoLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 10, 5));
+        mainPanel.add(infoLabel, BorderLayout.NORTH);
         
-        // Botões para utilizadores demo
-        JButton adminBtn = new JButton("👑 Administrador (admin/admin)");
-        adminBtn.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 11));
-        adminBtn.setBackground(new Color(220, 53, 69));
-        adminBtn.setForeground(Color.WHITE);
-        adminBtn.setPreferredSize(new Dimension(300, 25));
-        adminBtn.addActionListener(e -> {
-            usernameField.setText("admin");
-            passwordField.setText("admin");
-        });
+        // Painel com abas para organizar por função
+        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
         
-        JButton managerBtn = new JButton("👨‍💼 Gerente (manager/manager)");
-        managerBtn.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 11));
-        managerBtn.setBackground(new Color(255, 193, 7));
-        managerBtn.setForeground(Color.BLACK);
-        managerBtn.setPreferredSize(new Dimension(300, 25));
-        managerBtn.addActionListener(e -> {
-            usernameField.setText("manager");
-            passwordField.setText("manager");
-        });
+        // Aba ADMINISTRADORES
+        JPanel adminPanel = createUserButtonsPanel(new String[][]{
+            {"martim.sottomayor", "👑 Martim Sottomayor"},
+            {"catarina.balsemao", "👑 Catarina Balsemão"}
+        }, new Color(220, 53, 69));
+        tabbedPane.addTab("👑 Admins (2)", adminPanel);
         
-        JButton employeeBtn = new JButton("👨‍💻 Funcionário (employee/employee)");
-        employeeBtn.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 11));
-        employeeBtn.setBackground(new Color(40, 167, 69));
-        employeeBtn.setForeground(Color.WHITE);
-        employeeBtn.setPreferredSize(new Dimension(300, 25));
-        employeeBtn.addActionListener(e -> {
-            usernameField.setText("employee");
-            passwordField.setText("employee");
-        });
+        // Aba GERENTES
+        JPanel managerPanel = createUserButtonsPanel(new String[][]{
+            {"lucile.almeida", "👨‍💼 Lucile Almeida"},
+            {"bessa.ribeiro", "👨‍💼 Bessa Ribeiro"},
+            {"diana.brochado", "👨‍💼 Diana Brochado"},
+            {"paulo.bessa", "👨‍💼 Paulo Bessa"},
+            {"vania.lourenco", "👨‍💼 Vânia Lourenço"}
+        }, new Color(255, 193, 7));
+        tabbedPane.addTab("👨‍💼 Gerentes (5)", managerPanel);
         
-        panel.add(adminBtn);
-        panel.add(managerBtn);
-        panel.add(employeeBtn);
+        // Aba FUNCIONÁRIOS (divididos em duas colunas devido ao número)
+        JPanel employeePanel = createScrollableUserPanel(new String[][]{
+            {"ana.reis", "👨‍💻 Ana Reis"},
+            {"joao.couto", "👨‍💻 João Couto"},
+            {"carla.silva", "👨‍💻 Carla Silva"},
+            {"rodrigo.silva", "👨‍💻 Rodrigo Silva"},
+            {"silvia.silva", "👨‍💻 Sílvia Silva"},
+            {"ines.rodrigues", "👨‍💻 Inês Rodrigues"},
+            {"rita.almeida", "👨‍💻 Rita Almeida"},
+            {"sandra.rocha", "👨‍💻 Sandra Rocha"},
+            {"monica.lewinsky", "👨‍💻 Monica Lewinsky"},
+            {"sara.pereira", "👨‍💻 Sara Pereira"},
+            {"sofia.barbosa", "👨‍💻 Sofia Barbosa"},
+            {"daniela.torres", "👨‍💻 Daniela Torres"},
+            {"joaquina.torres", "👨‍💻 Joaquina Torres"},
+            {"madalena.gomes", "👨‍💻 Madalena Gomes"},
+            {"melinda.szekely", "👨‍💻 Melinda Szekely"},
+            {"rita.oliveira", "👨‍💻 Rita Oliveira"},
+            {"cristiana.oliveira", "👨‍💻 Cristiana Oliveira"},
+            {"carolina.tavares", "👨‍💻 Carolina Tavares"},
+            {"filipa.medeiros", "👨‍💻 Filipa Medeiros"},
+            {"adelina.gaspar", "👨‍💻 Adelina Gaspar"},
+            {"anca.tusa", "👨‍💻 Anca Tusa"},
+            {"antonio.nolasco", "👨‍💻 António Nolasco"}
+        }, new Color(40, 167, 69));
+        tabbedPane.addTab("👨‍💻 Funcionários (22)", employeePanel);
+        
+        mainPanel.add(tabbedPane, BorderLayout.CENTER);
+        return mainPanel;
+    }
+    
+    private JPanel createUserButtonsPanel(String[][] users, Color backgroundColor) {
+        JPanel panel = new JPanel(new GridLayout(users.length, 1, 2, 2));
+        panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        
+        for (String[] user : users) {
+            JButton btn = new JButton(user[1]);
+            btn.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 10));
+            btn.setBackground(backgroundColor);
+            btn.setForeground(backgroundColor.equals(new Color(255, 193, 7)) ? Color.BLACK : Color.WHITE);
+            btn.setPreferredSize(new Dimension(280, 22));
+            btn.addActionListener(e -> {
+                usernameField.setText(user[0]);
+                passwordField.setText(user[0] + "123");
+            });
+            panel.add(btn);
+        }
         
         return panel;
+    }
+    
+    private JPanel createScrollableUserPanel(String[][] users, Color backgroundColor) {
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        
+        // Painel com duas colunas para os funcionários
+        JPanel contentPanel = new JPanel(new GridLayout(0, 2, 3, 2));
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        
+        for (String[] user : users) {
+            JButton btn = new JButton(user[1]);
+            btn.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 9));
+            btn.setBackground(backgroundColor);
+            btn.setForeground(Color.WHITE);
+            btn.setPreferredSize(new Dimension(135, 20));
+            btn.addActionListener(e -> {
+                usernameField.setText(user[0]);
+                passwordField.setText(user[0] + "123");
+            });
+            contentPanel.add(btn);
+        }
+        
+        // Adicionar scroll para o caso de muitos utilizadores
+        JScrollPane scrollPane = new JScrollPane(contentPanel);
+        scrollPane.setPreferredSize(new Dimension(300, 120));
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+        return mainPanel;
     }
     
     private void setupEventHandlers() {
@@ -290,17 +362,31 @@ public class LoginDialog extends JDialog {
      */
     private LoggedUser authenticateUser(String username, String password) {
         try {
-            // Por enquanto, vamos simular a autenticação com utilizadores demo
-            if (isValidDemoUser(username, password)) {
-                return createDemoUser(username);
+            // Autenticação real via backend REST API
+            java.net.URL url = new java.net.URL("http://localhost:8080/api/users/login");
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+            conn.setDoOutput(true);
+
+            String json = String.format("{\"identifier\":\"%s\",\"password\":\"%s\"}", username, password);
+            try (java.io.OutputStream os = conn.getOutputStream()) {
+                byte[] input = json.getBytes("utf-8");
+                os.write(input, 0, input.length);
             }
-            
-            // Aqui poderia ser feita uma chamada real à API de autenticação
-            // Map<String, Object> response = apiClient.login(username, password);
-            // return parseUserFromResponse(response);
-            
-            return null;
-            
+
+            int code = conn.getResponseCode();
+            if (code == 200) {
+                try (java.io.InputStream is = conn.getInputStream()) {
+                    java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
+                    String result = s.hasNext() ? s.next() : "";
+                    // Espera-se um JSON com os dados do utilizador autenticado
+                    return parseUserFromJson(result);
+                }
+            } else {
+                // Se não for 200, login falhou
+                return null;
+            }
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -311,30 +397,44 @@ public class LoginDialog extends JDialog {
      * Verifica se é um utilizador demo válido
      */
     private boolean isValidDemoUser(String username, String password) {
-        return (username.equals("admin") && password.equals("admin")) ||
-               (username.equals("manager") && password.equals("manager")) ||
-               (username.equals("employee") && password.equals("employee"));
+    // Demo users desativados para produção
+    return false;
     }
     
     /**
      * Cria utilizador demo baseado no username
      */
     private LoggedUser createDemoUser(String username) {
-        switch (username) {
-            case "admin":
-                return new LoggedUser(1L, "admin", "admin@gestortarefas.com", 
-                    UserRole.ADMINISTRADOR, "demo-token-admin");
+        // Demo users desativados para produção
+        return null;
+    }
+    /**
+     * Converte JSON da resposta do backend em LoggedUser
+     */
+    private LoggedUser parseUserFromJson(String json) {
+        try {
+            com.fasterxml.jackson.databind.JsonNode response = new com.fasterxml.jackson.databind.ObjectMapper().readTree(json);
+            
+            // A resposta do backend tem estrutura: {"success": true, "user": {...}}
+            if (response.get("success") != null && response.get("success").asBoolean()) {
+                com.fasterxml.jackson.databind.JsonNode userNode = response.get("user");
+                if (userNode != null) {
+                    long id = userNode.get("id").asLong();
+                    String username = userNode.get("username").asText();
+                    String email = userNode.get("email").asText();
                     
-            case "manager":
-                return new LoggedUser(2L, "manager", "manager@gestortarefas.com", 
-                    UserRole.GERENTE, "demo-token-manager");
+                    // Role e token podem não existir na resposta - usar valores padrão
+                    String roleStr = userNode.has("role") ? userNode.get("role").asText() : "FUNCIONARIO";
+                    String token = userNode.has("token") ? userNode.get("token").asText() : "";
                     
-            case "employee":
-                return new LoggedUser(3L, "employee", "employee@gestortarefas.com", 
-                    UserRole.FUNCIONARIO, "demo-token-employee");
-                    
-            default:
-                return null;
+                    UserRole role = UserRole.valueOf(roleStr.toUpperCase());
+                    return new LoggedUser(id, username, email, role, token);
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
     }
     
