@@ -59,7 +59,16 @@ public class TeamService {
             throw new IllegalArgumentException("Sem permissão para gerir esta equipa");
         }
 
-        team.addMember(userToAdd);
+        // Verificar se já é membro
+        if (userToAdd.isMemberOfTeam(team)) {
+            throw new IllegalArgumentException("Utilizador já faz parte desta equipa");
+        }
+
+        // Adicionar membro usando o método auxiliar que mantém a consistência
+        userToAdd.addToTeam(team);
+        
+        // Salvar ambos para garantir persistência
+        userRepository.save(userToAdd);
         return teamRepository.save(team);
     }
 
@@ -76,7 +85,11 @@ public class TeamService {
             throw new IllegalArgumentException("Sem permissão para gerir esta equipa");
         }
 
-        team.removeMember(userToRemove);
+        // Remover membro usando o método auxiliar que mantém a consistência
+        userToRemove.removeFromTeam(team);
+        
+        // Salvar ambos para garantir persistência
+        userRepository.save(userToRemove);
         return teamRepository.save(team);
     }
 
@@ -241,7 +254,8 @@ public class TeamService {
      * Verifica se um utilizador pode gerir uma equipa
      */
     private boolean canManageTeam(Team team, User user) {
-        return user.getRole().isAdmin() || team.getManager().equals(user);
+        return user.getRole().isAdmin() || 
+               (team.getManager() != null && team.getManager().equals(user));
     }
 
     /**
@@ -249,7 +263,7 @@ public class TeamService {
      */
     private boolean canViewTeam(Team team, User user) {
         return user.getRole().isAdmin() || 
-               team.getManager().equals(user) || 
+               (team.getManager() != null && team.getManager().equals(user)) || 
                team.getMembers().contains(user);
     }
 

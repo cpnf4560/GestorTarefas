@@ -11,6 +11,7 @@ import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
 import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -106,6 +107,11 @@ public class MainFrame extends JFrame {
         topPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 5, 10));
         
         JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        // Adicionar logo
+        JLabel logoLabel = new JLabel();
+        logoLabel.setIcon(createLogoIcon());
+        userPanel.add(logoLabel);
+        userPanel.add(Box.createHorizontalStrut(10));
         userPanel.add(userLabel);
         userPanel.add(Box.createHorizontalStrut(20));
         userPanel.add(statsLabel);
@@ -615,6 +621,56 @@ public class MainFrame extends JFrame {
             dispose();
             new LoginFrame().setVisible(true);
         }
+    }
+    
+    /**
+     * Carrega o logo do ficheiro ou cria um ícone programático como backup
+     */
+    private ImageIcon createLogoIcon() {
+        try {
+            // Tentar carregar o logo do ficheiro
+            java.net.URL logoUrl = getClass().getClassLoader().getResource("images/logo.png");
+            if (logoUrl != null) {
+                ImageIcon originalIcon = new ImageIcon(logoUrl);
+                // Redimensionar para 48x48 pixels
+                Image img = originalIcon.getImage().getScaledInstance(48, 48, Image.SCALE_SMOOTH);
+                return new ImageIcon(img);
+            }
+        } catch (Exception e) {
+            System.out.println("Erro ao carregar logo: " + e.getMessage());
+        }
+        
+        // Backup: criar logo programático se não conseguir carregar o ficheiro
+        int size = 48;
+        java.awt.image.BufferedImage image = new java.awt.image.BufferedImage(size, size, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = image.createGraphics();
+        
+        // Ativar antialiasing para melhor qualidade
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        
+        // Desenhar fundo circular azul
+        g2d.setColor(Colors.MAGASTEEL_BLUE);
+        g2d.fillRoundRect(2, 2, size-4, size-4, 12, 12);
+        
+        // Desenhar borda
+        g2d.setColor(Colors.DARK_GRAY);
+        g2d.setStroke(new BasicStroke(1.5f));
+        g2d.drawRoundRect(2, 2, size-4, size-4, 12, 12);
+        
+        // Desenhar texto "GT" no centro
+        g2d.setColor(Color.WHITE);
+        g2d.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 16));
+        FontMetrics fm = g2d.getFontMetrics();
+        String text = "GT";
+        int textWidth = fm.stringWidth(text);
+        int textHeight = fm.getAscent();
+        int x = (size - textWidth) / 2;
+        int y = (size + textHeight) / 2 - 2;
+        g2d.drawString(text, x, y);
+        
+        g2d.dispose();
+        return new ImageIcon(image);
     }
     
     public void refreshTasks() {

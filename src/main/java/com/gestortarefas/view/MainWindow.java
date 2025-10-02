@@ -25,6 +25,16 @@ public class MainWindow extends JFrame {
         showLoginDialog();
     }
     
+    /**
+     * Construtor para quando o utilizador já fez login
+     */
+    public MainWindow(boolean skipLogin) {
+        initializeWindow();
+        if (!skipLogin) {
+            showLoginDialog();
+        }
+    }
+    
     private void initializeWindow() {
         setTitle("Sistema de Gestão de Tarefas");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

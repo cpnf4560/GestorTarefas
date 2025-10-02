@@ -1,8 +1,10 @@
 package com.gestortarefas.view.dashboard;
 
 import com.gestortarefas.view.dialogs.UserCreateDialog;
+import com.gestortarefas.view.dialogs.UserEditDialog;
 import com.gestortarefas.view.dialogs.TaskCreateDialog;
 import com.gestortarefas.view.dialogs.TeamCreateDialog;
+import com.gestortarefas.view.dialogs.TeamEditDialog;
 import com.gestortarefas.view.dialogs.TaskCommentsDialog;
 
 import javax.swing.*;
@@ -212,7 +214,7 @@ public class AdminDashboardPanel extends DashboardBasePanel {
         controlsPanel.add(refreshUsersBtn);
         
         // Tabela de utilizadores
-        String[] userColumns = {"ID", "Username", "Email", "Perfil", "Equipa", "Ativo", "Data Criação"};
+        String[] userColumns = {"ID", "Username", "Nome Completo", "Email", "Perfil", "Equipa", "Ativo", "Data Criação"};
         usersTableModel = new DefaultTableModel(userColumns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -478,6 +480,7 @@ public class AdminDashboardPanel extends DashboardBasePanel {
                     for (var user : users) {
                         String id = user.get("id").toString();
                         String username = (String) user.get("username");
+                        String fullName = (String) user.getOrDefault("fullName", "N/A");
                         String email = (String) user.get("email");
                         String role = user.get("role") != null ? user.get("role").toString() : "N/A";
                         String teamName = "N/A"; // Por implementar associação de equipas
@@ -485,7 +488,7 @@ public class AdminDashboardPanel extends DashboardBasePanel {
                         String createdAt = user.get("createdAt") != null ? user.get("createdAt").toString() : "N/A";
                         
                         usersTableModel.addRow(new Object[]{
-                            id, username, email, role, teamName, 
+                            id, username, fullName, email, role, teamName, 
                             active ? "Sim" : "Não", createdAt
                         });
                     }
@@ -600,105 +603,85 @@ public class AdminDashboardPanel extends DashboardBasePanel {
     }
     
     private void editSelectedUser() {
+        System.out.println("DEBUG: editSelectedUser() chamado!");
+        
         int selectedRow = usersTable.getSelectedRow();
-        if (selectedRow >= 0) {
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, 
+                "Por favor, selecione um utilizador para editar.", 
+                "Nenhum Utilizador Selecionado", 
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        try {
             DefaultTableModel model = (DefaultTableModel) usersTable.getModel();
             
-            // Obter dados do utilizador selecionado
-            Long userId = (Long) model.getValueAt(selectedRow, 0);
-            String currentName = (String) model.getValueAt(selectedRow, 1);
-            String currentEmail = (String) model.getValueAt(selectedRow, 2);
-            String currentRole = (String) model.getValueAt(selectedRow, 3);
+            // Obter dados do utilizador selecionado com conversão segura
+            Object userIdObj = model.getValueAt(selectedRow, 0);
+            Long userId;
+            if (userIdObj instanceof String) {
+                userId = Long.parseLong((String) userIdObj);
+            } else if (userIdObj instanceof Number) {
+                userId = ((Number) userIdObj).longValue();
+            } else {
+                throw new IllegalStateException("Tipo de ID não suportado: " + userIdObj.getClass());
+            }
             
-            // Criar diálogo de edição
-            JDialog editDialog = new JDialog((JFrame) SwingUtilities.getWindowAncestor(this), 
-                                           "Editar Utilizador", true);
-            editDialog.setSize(400, 300);
-            editDialog.setLocationRelativeTo(this);
+            String currentUsername = (String) model.getValueAt(selectedRow, 1);
+            String currentFullName = (String) model.getValueAt(selectedRow, 2);
+            String currentEmail = (String) model.getValueAt(selectedRow, 3);
+            String currentRole = (String) model.getValueAt(selectedRow, 4);
             
-            JPanel panel = new JPanel(new GridBagLayout());
-            GridBagConstraints gbc = new GridBagConstraints();
-            gbc.insets = new Insets(5, 5, 5, 5);
-            gbc.anchor = GridBagConstraints.WEST;
+            // Obter informações adicionais - equipa e status ativo
+            String currentTeam = "N/A";
+            boolean currentActive = true;
             
-            // Campos do formulário
-            gbc.gridx = 0; gbc.gridy = 0;
-            panel.add(new JLabel("Nome:"), gbc);
-            JTextField nameField = new JTextField(currentName, 20);
-            gbc.gridx = 1;
-            panel.add(nameField, gbc);
-            
-            gbc.gridx = 0; gbc.gridy = 1;
-            panel.add(new JLabel("Email:"), gbc);
-            JTextField emailField = new JTextField(currentEmail, 20);
-            gbc.gridx = 1;
-            panel.add(emailField, gbc);
-            
-            gbc.gridx = 0; gbc.gridy = 2;
-            panel.add(new JLabel("Função:"), gbc);
-            JComboBox<String> roleCombo = new JComboBox<>(new String[]{"ADMIN", "MANAGER", "EMPLOYEE"});
-            roleCombo.setSelectedItem(currentRole);
-            gbc.gridx = 1;
-            panel.add(roleCombo, gbc);
-            
-            // Botões
-            JPanel buttonPanel = new JPanel(new FlowLayout());
-            JButton saveButton = new JButton("Guardar");
-            JButton cancelButton = new JButton("Cancelar");
-            
-            saveButton.addActionListener(e -> {
-                String newName = nameField.getText().trim();
-                String newEmail = emailField.getText().trim();
-                String newRole = (String) roleCombo.getSelectedItem();
-                
-                if (newName.isEmpty() || newEmail.isEmpty()) {
-                    JOptionPane.showMessageDialog(editDialog, "Por favor, preencha todos os campos obrigatórios.");
-                    return;
+            // Se existem mais colunas na tabela, pegar essas informações
+            if (model.getColumnCount() > 5) {
+                Object teamValue = model.getValueAt(selectedRow, 5);
+                currentTeam = teamValue != null ? teamValue.toString() : "N/A";
+            }
+            if (model.getColumnCount() > 6) {
+                Object activeValue = model.getValueAt(selectedRow, 6);
+                if (activeValue instanceof Boolean) {
+                    currentActive = (Boolean) activeValue;
+                } else if (activeValue instanceof String) {
+                    String activeStr = (String) activeValue;
+                    currentActive = "Sim".equalsIgnoreCase(activeStr) || 
+                                   "true".equalsIgnoreCase(activeStr) || 
+                                   "ativo".equalsIgnoreCase(activeStr) ||
+                                   "1".equals(activeStr);
+                } else {
+                    currentActive = true; // default
                 }
-                
-                try {
-                    // Criar dados para actualização
-                    Map<String, Object> userData = new HashMap<>();
-                    userData.put("name", newName);
-                    userData.put("email", newEmail);
-                    userData.put("role", newRole);
-                    
-                    // Tentar actualizar via API (simulado por enquanto)
-                    boolean success = apiClient.updateTask(userId, userData); // Reutilizando método similar
-                    
-                    if (success) {
-                        // Actualizar tabela
-                        model.setValueAt(newName, selectedRow, 1);
-                        model.setValueAt(newEmail, selectedRow, 2);
-                        model.setValueAt(newRole, selectedRow, 3);
-                        
-                        JOptionPane.showMessageDialog(editDialog, "Utilizador actualizado com sucesso!");
-                        editDialog.dispose();
-                    } else {
-                        JOptionPane.showMessageDialog(editDialog, "Erro ao actualizar utilizador.");
-                    }
-                    
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(editDialog, 
-                        "Erro ao actualizar utilizador: " + ex.getMessage());
-                }
-            });
+            }
             
-            cancelButton.addActionListener(e -> editDialog.dispose());
+            System.out.println("DEBUG: Abrindo diálogo para utilizador: " + currentUsername);
             
-            buttonPanel.add(saveButton);
-            buttonPanel.add(cancelButton);
+            // Criar e mostrar o diálogo de edição
+            UserEditDialog editDialog = new UserEditDialog(
+                SwingUtilities.getWindowAncestor(this),
+                apiClient,
+                userId,
+                currentUsername,
+                currentFullName,
+                currentEmail,
+                currentRole,
+                currentTeam,
+                currentActive,
+                this::loadAllUsers // Callback para recarregar dados após edição
+            );
             
-            gbc.gridx = 0; gbc.gridy = 3;
-            gbc.gridwidth = 2;
-            gbc.fill = GridBagConstraints.HORIZONTAL;
-            panel.add(buttonPanel, gbc);
-            
-            editDialog.add(panel);
             editDialog.setVisible(true);
             
-        } else {
-            JOptionPane.showMessageDialog(this, "Selecione um utilizador para editar");
+        } catch (Exception ex) {
+            System.err.println("ERRO ao abrir diálogo de edição: " + ex.getMessage());
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, 
+                "Erro inesperado ao abrir o diálogo de edição: " + ex.getMessage(), 
+                "Erro", 
+                JOptionPane.ERROR_MESSAGE);
         }
     }
     
@@ -777,11 +760,76 @@ public class AdminDashboardPanel extends DashboardBasePanel {
     }
     
     private void editSelectedTeam() {
+        System.out.println("DEBUG: editSelectedTeam() chamado!");
+        
         int selectedRow = teamsTable.getSelectedRow();
-        if (selectedRow >= 0) {
-            JOptionPane.showMessageDialog(this, "Editar Equipa - Implementar diálogo");
-        } else {
-            JOptionPane.showMessageDialog(this, "Selecione uma equipa para editar");
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, 
+                "Por favor, selecione uma equipa para editar.", 
+                "Nenhuma Equipa Selecionada", 
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        try {
+            DefaultTableModel model = (DefaultTableModel) teamsTable.getModel();
+            
+            // Obter dados da equipa selecionada com conversão segura
+            Object teamIdObj = model.getValueAt(selectedRow, 0);
+            Long teamId;
+            if (teamIdObj instanceof String) {
+                teamId = Long.parseLong((String) teamIdObj);
+            } else if (teamIdObj instanceof Number) {
+                teamId = ((Number) teamIdObj).longValue();
+            } else {
+                throw new IllegalStateException("Tipo de ID não suportado: " + teamIdObj.getClass());
+            }
+            
+            String currentName = (String) model.getValueAt(selectedRow, 1);
+            String currentDescription = model.getColumnCount() > 2 ? (String) model.getValueAt(selectedRow, 2) : "";
+            String currentManager = model.getColumnCount() > 3 ? (String) model.getValueAt(selectedRow, 3) : "N/A";
+            
+            // Obter status ativo (assumir ativo se não especificado)
+            boolean currentActive = true;
+            if (model.getColumnCount() > 4) {
+                Object activeValue = model.getValueAt(selectedRow, 4);
+                if (activeValue instanceof Boolean) {
+                    currentActive = (Boolean) activeValue;
+                } else if (activeValue instanceof String) {
+                    String activeStr = (String) activeValue;
+                    currentActive = "Sim".equalsIgnoreCase(activeStr) || 
+                                   "true".equalsIgnoreCase(activeStr) || 
+                                   "ativo".equalsIgnoreCase(activeStr) ||
+                                   "1".equals(activeStr);
+                } else {
+                    currentActive = true; // default
+                }
+            }
+            
+            System.out.println("DEBUG: Abrindo diálogo para equipa: " + currentName);
+            
+            // Criar e mostrar o diálogo de edição
+            TeamEditDialog editDialog = new TeamEditDialog(
+                SwingUtilities.getWindowAncestor(this),
+                apiClient,
+                teamId,
+                currentName,
+                currentDescription,
+                currentManager,
+                currentActive,
+                currentUserId, // ID do utilizador logado
+                this::loadAllTeams // Callback para recarregar dados após edição
+            );
+            
+            editDialog.setVisible(true);
+            
+        } catch (Exception ex) {
+            System.err.println("ERRO ao abrir diálogo de edição de equipa: " + ex.getMessage());
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, 
+                "Erro inesperado ao abrir o diálogo de edição: " + ex.getMessage(), 
+                "Erro", 
+                JOptionPane.ERROR_MESSAGE);
         }
     }
     

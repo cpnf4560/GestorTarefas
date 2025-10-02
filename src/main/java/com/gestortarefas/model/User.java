@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -47,7 +48,7 @@ public class User {
     // Senha criptografada (mínimo 6 caracteres, excluída do JSON por segurança)
     @NotBlank(message = "Senha é obrigatória")
     @Size(min = 6, message = "Senha deve ter pelo menos 6 caracteres")
-    @JsonIgnore // Nunca incluir a senha nas respostas JSON
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) // Permite receber no JSON mas não enviar
     @Column(nullable = false)
     private String password;
 

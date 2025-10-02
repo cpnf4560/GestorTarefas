@@ -9,8 +9,10 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Dashboard específico para gestores
@@ -856,8 +858,87 @@ public class ManagerDashboardPanel extends DashboardBasePanel {
             
             // Botões
             JPanel buttonPanel = new JPanel(new FlowLayout());
+            JButton addMemberButton = new JButton("Adicionar Membro");
+            JButton removeMemberButton = new JButton("Remover Membro");
             JButton refreshButton = new JButton("Actualizar");
             JButton closeButton = new JButton("Fechar");
+            
+            // Configurar botões
+            addMemberButton.setBackground(new Color(34, 139, 34));
+            addMemberButton.setForeground(Color.WHITE);
+            removeMemberButton.setBackground(new Color(220, 20, 60));
+            removeMemberButton.setForeground(Color.WHITE);
+            
+            // Ação do botão Adicionar Membro
+            addMemberButton.addActionListener(addEvent -> {
+                int selectedTeamIndex = teamCombo.getSelectedIndex();
+                if (selectedTeamIndex >= 0 && selectedTeamIndex < teams.size()) {
+                    Map<String, Object> selectedTeam = teams.get(selectedTeamIndex);
+                    Long teamId = getLongValue(selectedTeam, "id");
+                    String teamName = getStringValue(selectedTeam, "name", "Equipa");
+                    
+                    openAddMemberDialog(dialog, teamId, teamName, users, updateMemberList);
+                } else {
+                    JOptionPane.showMessageDialog(dialog, 
+                        "Por favor, selecione uma equipa primeiro.",
+                        "Aviso", JOptionPane.WARNING_MESSAGE);
+                }
+            });
+            
+            // Ação do botão Remover Membro
+            removeMemberButton.addActionListener(removeEvent -> {
+                String selectedMember = memberList.getSelectedValue();
+                if (selectedMember == null) {
+                    JOptionPane.showMessageDialog(dialog, 
+                        "Por favor, selecione um membro para remover.",
+                        "Aviso", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                
+                int selectedTeamIndex = teamCombo.getSelectedIndex();
+                if (selectedTeamIndex >= 0 && selectedTeamIndex < teams.size()) {
+                    Map<String, Object> selectedTeam = teams.get(selectedTeamIndex);
+                    Long teamId = getLongValue(selectedTeam, "id");
+                    
+                    // Encontrar o ID do utilizador
+                    Long userId = null;
+                    for (Map<String, Object> user : users) {
+                        String userName = getStringValue(user, "name", "");
+                        if (userName.equals(selectedMember)) {
+                            userId = getLongValue(user, "id");
+                            break;
+                        }
+                    }
+                    
+                    if (userId != null) {
+                        int confirm = JOptionPane.showConfirmDialog(dialog,
+                            "Tem certeza que deseja remover " + selectedMember + " da equipa?",
+                            "Confirmar Remoção", JOptionPane.YES_NO_OPTION);
+                        
+                        if (confirm == JOptionPane.YES_OPTION) {
+                            try {
+                                boolean success = apiClient.removeTeamMember(teamId, userId, currentUserId);
+                                if (success) {
+                                    JOptionPane.showMessageDialog(dialog,
+                                        "Membro removido com sucesso!");
+                                    // Recarregar dados
+                                    users.clear();
+                                    users.addAll(apiClient.getAllUsers());
+                                    updateMemberList.run();
+                                } else {
+                                    JOptionPane.showMessageDialog(dialog,
+                                        "Erro ao remover membro da equipa.",
+                                        "Erro", JOptionPane.ERROR_MESSAGE);
+                                }
+                            } catch (Exception ex) {
+                                JOptionPane.showMessageDialog(dialog,
+                                    "Erro ao remover membro: " + ex.getMessage(),
+                                    "Erro", JOptionPane.ERROR_MESSAGE);
+                            }
+                        }
+                    }
+                }
+            });
             
             refreshButton.addActionListener(e -> {
                 try {
@@ -884,6 +965,8 @@ public class ManagerDashboardPanel extends DashboardBasePanel {
             
             closeButton.addActionListener(e -> dialog.dispose());
             
+            buttonPanel.add(addMemberButton);
+            buttonPanel.add(removeMemberButton);
             buttonPanel.add(refreshButton);
             buttonPanel.add(closeButton);
             mainPanel.add(buttonPanel, BorderLayout.SOUTH);
@@ -898,6 +981,177 @@ public class ManagerDashboardPanel extends DashboardBasePanel {
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, 
                 "Erro ao abrir gestão de equipas: " + e.getMessage(),
+                "Erro", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private void openAddMemberDialog(JDialog parentDialog, Long teamId, String teamName, 
+                                   List<Map<String, Object>> allUsers, Runnable updateCallback) {
+        try {
+            // Obter membros atuais da equipa
+            List<Map<String, Object>> currentMembers = apiClient.getTeamMembers(teamId);
+            Set<Long> currentMemberIds = new HashSet<>();
+            if (currentMembers != null) {
+                for (Map<String, Object> member : currentMembers) {
+                    Long memberId = getLongValue(member, "id");
+                    if (memberId != null) {
+                        currentMemberIds.add(memberId);
+                    }
+                }
+            }
+            
+            // Criar diálogo
+            JDialog dialog = new JDialog(parentDialog, "Adicionar Membro à " + teamName, true);
+            dialog.setSize(500, 400);
+            dialog.setLocationRelativeTo(parentDialog);
+            
+            JPanel mainPanel = new JPanel(new BorderLayout());
+            
+            // Lista de utilizadores disponíveis (não membros da equipa)
+            DefaultListModel<String> availableUsersModel = new DefaultListModel<>();
+            JList<String> availableUsersList = new JList<>(availableUsersModel);
+            availableUsersList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            
+            // Popular lista com utilizadores disponíveis
+            for (Map<String, Object> user : allUsers) {
+                Long userId = getLongValue(user, "id");
+                if (userId != null && !currentMemberIds.contains(userId)) {
+                    String userName = getStringValue(user, "name", "Nome não disponível");
+                    String userRole = getStringValue(user, "role", "");
+                    String displayName = userName + " (" + userRole + ")";
+                    availableUsersModel.addElement(displayName);
+                }
+            }
+            
+            if (availableUsersModel.isEmpty()) {
+                JOptionPane.showMessageDialog(parentDialog,
+                    "Não há utilizadores disponíveis para adicionar à equipa.",
+                    "Informação", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            
+            JScrollPane listScrollPane = new JScrollPane(availableUsersList);
+            listScrollPane.setBorder(BorderFactory.createTitledBorder("Utilizadores Disponíveis"));
+            mainPanel.add(listScrollPane, BorderLayout.CENTER);
+            
+            // Painel de informações do utilizador selecionado
+            JPanel infoPanel = new JPanel(new GridBagLayout());
+            infoPanel.setBorder(BorderFactory.createTitledBorder("Informações do Utilizador"));
+            
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.anchor = GridBagConstraints.WEST;
+            
+            gbc.gridx = 0; gbc.gridy = 0;
+            infoPanel.add(new JLabel("Nome:"), gbc);
+            JTextField nameInfoField = new JTextField(25);
+            nameInfoField.setEditable(false);
+            gbc.gridx = 1;
+            infoPanel.add(nameInfoField, gbc);
+            
+            gbc.gridx = 0; gbc.gridy = 1;
+            infoPanel.add(new JLabel("Email:"), gbc);
+            JTextField emailInfoField = new JTextField(25);
+            emailInfoField.setEditable(false);
+            gbc.gridx = 1;
+            infoPanel.add(emailInfoField, gbc);
+            
+            gbc.gridx = 0; gbc.gridy = 2;
+            infoPanel.add(new JLabel("Função:"), gbc);
+            JTextField roleInfoField = new JTextField(25);
+            roleInfoField.setEditable(false);
+            gbc.gridx = 1;
+            infoPanel.add(roleInfoField, gbc);
+            
+            mainPanel.add(infoPanel, BorderLayout.SOUTH);
+            
+            // Listener para mostrar informações do utilizador selecionado
+            availableUsersList.addListSelectionListener(e -> {
+                if (!e.getValueIsAdjusting()) {
+                    String selectedItem = availableUsersList.getSelectedValue();
+                    if (selectedItem != null) {
+                        // Extrair nome do utilizador (antes dos parênteses)
+                        String userName = selectedItem.split(" \\(")[0];
+                        
+                        // Encontrar o utilizador na lista
+                        for (Map<String, Object> user : allUsers) {
+                            String userNameInList = getStringValue(user, "name", "");
+                            if (userNameInList.equals(userName)) {
+                                nameInfoField.setText(userNameInList);
+                                emailInfoField.setText(getStringValue(user, "email", ""));
+                                roleInfoField.setText(getStringValue(user, "role", ""));
+                                break;
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Botões
+            JPanel buttonPanel = new JPanel(new FlowLayout());
+            JButton addButton = new JButton("Adicionar");
+            JButton cancelButton = new JButton("Cancelar");
+            
+            addButton.setBackground(new Color(34, 139, 34));
+            addButton.setForeground(Color.WHITE);
+            
+            addButton.addActionListener(e -> {
+                String selectedItem = availableUsersList.getSelectedValue();
+                if (selectedItem == null) {
+                    JOptionPane.showMessageDialog(dialog,
+                        "Por favor, selecione um utilizador para adicionar.",
+                        "Aviso", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                
+                // Extrair nome do utilizador
+                String userName = selectedItem.split(" \\(")[0];
+                
+                // Encontrar o ID do utilizador
+                Long userId = null;
+                for (Map<String, Object> user : allUsers) {
+                    String userNameInList = getStringValue(user, "name", "");
+                    if (userNameInList.equals(userName)) {
+                        userId = getLongValue(user, "id");
+                        break;
+                    }
+                }
+                
+                if (userId != null) {
+                    try {
+                        boolean success = apiClient.addTeamMember(teamId, userId, currentUserId);
+                        if (success) {
+                            JOptionPane.showMessageDialog(dialog,
+                                "Membro adicionado com sucesso à equipa!");
+                            dialog.dispose();
+                            // Executar callback para atualizar a lista
+                            updateCallback.run();
+                        } else {
+                            JOptionPane.showMessageDialog(dialog,
+                                "Erro ao adicionar membro à equipa.",
+                                "Erro", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(dialog,
+                            "Erro ao adicionar membro: " + ex.getMessage(),
+                            "Erro", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            });
+            
+            cancelButton.addActionListener(e -> dialog.dispose());
+            
+            buttonPanel.add(addButton);
+            buttonPanel.add(cancelButton);
+            
+            mainPanel.add(buttonPanel, BorderLayout.NORTH);
+            
+            dialog.add(mainPanel);
+            dialog.setVisible(true);
+            
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(parentDialog,
+                "Erro ao abrir diálogo de adicionar membro: " + e.getMessage(),
                 "Erro", JOptionPane.ERROR_MESSAGE);
         }
     }

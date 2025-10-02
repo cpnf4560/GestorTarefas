@@ -101,12 +101,15 @@ public class UserController {
     }
 
     /**
-     * Lista todos os utilizadores ativos
+     * Lista todos os utilizadores (por padrão apenas ativos)
      */
     @GetMapping
-    public ResponseEntity<Map<String, Object>> getAllUsers() {
+    public ResponseEntity<Map<String, Object>> getAllUsers(
+            @RequestParam(value = "includeInactive", defaultValue = "false") boolean includeInactive) {
         Map<String, Object> response = new HashMap<>();
-        List<User> users = userService.findAllActiveUsers();
+        List<User> users = includeInactive ? 
+            userService.findAllUsers() : 
+            userService.findAllActiveUsers();
         
         List<Map<String, Object>> usersList = users.stream()
             .map(this::createUserResponse)
@@ -123,12 +126,11 @@ public class UserController {
      * Atualiza informações do utilizador
      */
     @PutMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> updateUser(@PathVariable Long id, @RequestBody User user) {
+    public ResponseEntity<Map<String, Object>> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> userData) {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            user.setId(id);
-            User updatedUser = userService.updateUser(user);
+            User updatedUser = userService.updateUserFromMap(id, userData);
             
             response.put("success", true);
             response.put("message", "Utilizador atualizado com sucesso");

@@ -158,6 +158,33 @@ public class RestApiClient {
     }
 
     /**
+     * Atualiza uma equipa completa (incluindo definir gerente)
+     */
+    public boolean updateTeamComplete(Long teamId, Map<String, Object> teamData, Long requesterId) {
+        try {
+            // Primeiro atualizar dados básicos da equipa
+            String name = (String) teamData.get("name");
+            String description = (String) teamData.get("description");
+            
+            boolean basicUpdateSuccess = updateTeam(teamId, name, description, requesterId);
+            if (!basicUpdateSuccess) {
+                return false;
+            }
+            
+            // Se há managerId, definir o gerente
+            if (teamData.containsKey("managerId") && teamData.get("managerId") != null) {
+                Long managerId = ((Number) teamData.get("managerId")).longValue();
+                return setTeamManager(teamId, managerId, requesterId);
+            }
+            
+            return true;
+        } catch (Exception e) {
+            System.err.println("Erro ao atualizar equipa completa: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Define o gestor de uma equipa
      */
     public boolean setTeamManager(Long teamId, Long managerId, Long requesterId) {
@@ -199,12 +226,12 @@ public class RestApiClient {
     }
 
     /**
-     * Lista todos os utilizadores
+     * Lista todos os utilizadores (incluindo inativos)
      */
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getAllUsers() {
         try {
-            String url = BASE_URL + "/users";
+            String url = BASE_URL + "/users?includeInactive=true";
             ResponseEntity<?> response = restTemplate.getForEntity(url, Map.class);
             Map<String, Object> result = (Map<String, Object>) response.getBody();
             if (result != null && result.containsKey("users")) {
@@ -214,6 +241,51 @@ public class RestApiClient {
         } catch (Exception e) {
             System.err.println("Erro ao listar utilizadores: " + e.getMessage());
             return null;
+        }
+    }
+    
+    /**
+     * Atualiza um utilizador
+     */
+    @SuppressWarnings("unchecked")
+    public boolean updateUser(Long userId, Map<String, Object> userData) {
+        try {
+            String url = BASE_URL + "/users/" + userId;
+            
+            // Configurar headers
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            // Criar entidade HTTP
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(userData, headers);
+            
+            // Fazer requisição PUT
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                url, 
+                HttpMethod.PUT, 
+                request, 
+                (Class<Map<String, Object>>) (Class<?>) Map.class
+            );
+            
+            // Verificar resposta
+            Map<String, Object> result = response.getBody();
+            if (result != null && result.containsKey("success")) {
+                Boolean success = (Boolean) result.get("success");
+                if (success != null && success) {
+                    System.out.println("Utilizador atualizado com sucesso: " + result.get("message"));
+                    return true;
+                } else {
+                    System.err.println("Erro ao atualizar utilizador: " + result.get("message"));
+                    return false;
+                }
+            }
+            
+            return false;
+            
+        } catch (Exception e) {
+            System.err.println("Erro ao atualizar utilizador: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
     }
     
@@ -489,6 +561,24 @@ public class RestApiClient {
             return response.getStatusCode().is2xxSuccessful();
         } catch (Exception e) {
             System.err.println("Erro ao adicionar membro à equipa: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Remove membro da equipa
+     */
+    public boolean removeTeamMember(Long teamId, Long userId, Long requesterId) {
+        try {
+            String url = BASE_URL + "/teams/" + teamId + "/members/" + userId;
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("User-Id", requesterId.toString());
+            HttpEntity<?> entity = new HttpEntity<>(headers);
+            
+            ResponseEntity<?> response = restTemplate.exchange(url, HttpMethod.DELETE, entity, Map.class);
+            return response.getStatusCode().is2xxSuccessful();
+        } catch (Exception e) {
+            System.err.println("Erro ao remover membro da equipa: " + e.getMessage());
             return false;
         }
     }

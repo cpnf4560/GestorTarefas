@@ -1,7 +1,10 @@
 package com.gestortarefas.service;
 
 import com.gestortarefas.model.User;
+import com.gestortarefas.model.Team;
+import com.gestortarefas.model.UserRole;
 import com.gestortarefas.repository.UserRepository;
+import com.gestortarefas.repository.TeamRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -9,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -20,6 +24,9 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private TeamRepository teamRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -91,6 +98,13 @@ public class UserService {
     }
 
     /**
+     * Lista todos os utilizadores (ativos e inativos)
+     */
+    public List<User> findAllUsers() {
+        return userRepository.findAll();
+    }
+
+    /**
      * Atualiza informações do utilizador
      */
     public User updateUser(User user) {
@@ -98,12 +112,87 @@ public class UserService {
             throw new IllegalArgumentException("ID do utilizador não pode ser nulo");
         }
         
-        Optional<User> existingUser = userRepository.findById(user.getId());
-        if (existingUser.isEmpty()) {
+        Optional<User> existingUserOpt = userRepository.findById(user.getId());
+        if (existingUserOpt.isEmpty()) {
             throw new IllegalArgumentException("Utilizador não encontrado");
         }
+        
+        User existingUser = existingUserOpt.get();
+        
+        // Atualizar apenas os campos que não são nulos na requisição
+        if (user.getFullName() != null) {
+            existingUser.setFullName(user.getFullName());
+        }
+        if (user.getEmail() != null) {
+            existingUser.setEmail(user.getEmail());
+        }
+        if (user.getActive() != null) {
+            existingUser.setActive(user.getActive());
+        }
+        if (user.getRole() != null) {
+            existingUser.setRole(user.getRole());
+        }
 
-        return userRepository.save(user);
+        return userRepository.save(existingUser);
+    }
+
+    /**
+     * Atualiza utilizador a partir de Map (suporta teamId)
+     */
+    public User updateUserFromMap(Long userId, Map<String, Object> userData) {
+        if (userId == null) {
+            throw new IllegalArgumentException("ID do utilizador não pode ser nulo");
+        }
+        
+        Optional<User> existingUserOpt = userRepository.findById(userId);
+        if (existingUserOpt.isEmpty()) {
+            throw new IllegalArgumentException("Utilizador não encontrado");
+        }
+        
+        User existingUser = existingUserOpt.get();
+        
+        // Atualizar campos básicos
+        if (userData.containsKey("fullName") && userData.get("fullName") != null) {
+            existingUser.setFullName((String) userData.get("fullName"));
+        }
+        if (userData.containsKey("email") && userData.get("email") != null) {
+            existingUser.setEmail((String) userData.get("email"));
+        }
+        if (userData.containsKey("active") && userData.get("active") != null) {
+            existingUser.setActive((Boolean) userData.get("active"));
+        }
+        if (userData.containsKey("role") && userData.get("role") != null) {
+            String roleStr = (String) userData.get("role");
+            existingUser.setRole(UserRole.valueOf(roleStr));
+        }
+        
+        // Processar teamId
+        if (userData.containsKey("teamId") && userData.get("teamId") != null) {
+            Long teamId = null;
+            Object teamIdObj = userData.get("teamId");
+            if (teamIdObj instanceof Number) {
+                teamId = ((Number) teamIdObj).longValue();
+            } else if (teamIdObj instanceof String) {
+                teamId = Long.parseLong((String) teamIdObj);
+            }
+            
+            if (teamId != null) {
+                // Remover utilizador de todas as equipas atuais
+                existingUser.getTeams().clear();
+                
+                // Adicionar à nova equipa
+                Optional<Team> teamOpt = teamRepository.findById(teamId);
+                if (teamOpt.isPresent()) {
+                    Team team = teamOpt.get();
+                    existingUser.addToTeam(team);
+                }
+            }
+        } else {
+            // Se não há teamId ou é null, remover de todas as equipas
+            existingUser.getTeams().clear();
+        }
+
+        return userRepository.save(existingUser);
     }
 
     /**
