@@ -1,6 +1,7 @@
 package com.gestortarefas.view.dashboard;
 
 import com.gestortarefas.util.RestApiClient;
+import com.gestortarefas.gui.Colors;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -102,8 +103,15 @@ public class DashboardBasePanel extends JPanel {
             table.getColumnModel().getColumn(3).setPreferredWidth(130); // Atribuído a
             table.getColumnModel().getColumn(4).setPreferredWidth(100); // Status
             
-            // Renderer personalizado para as células
-            table.setDefaultRenderer(Object.class, new TaskCellRenderer());
+            // Aplicar tema moderno e alinhamento central (exceto Tarefa - coluna 1)
+            Colors.applyModernTable(table);
+
+            // Renderer personalizado para as células (aplicado a todas as colunas)
+            TaskCellRenderer renderer = new TaskCellRenderer();
+            table.setDefaultRenderer(Object.class, renderer);
+            for (int col = 0; col < table.getColumnCount(); col++) {
+                table.getColumnModel().getColumn(col).setCellRenderer(renderer);
+            }
             
             // Mouse listener para clique duplo
             table.addMouseListener(new TaskTableMouseListener());
@@ -144,7 +152,7 @@ public class DashboardBasePanel extends JPanel {
             "<html><div style='padding: 3px 5px; font-size: 10px; text-align: center;'>" +
             "<span style='color: #dc3545;'>●</span> Urgente &nbsp; " +
             "<span style='color: #fd7e14;'>●</span> Alta &nbsp; " +
-            "<span style='color: #ffc107;'>●</span> Normal &nbsp; " +
+            "<span style='color: #2196f3;'>●</span> Normal &nbsp; " +
             "<span style='color: #28a745;'>●</span> Baixa" +
             "</div></html>"
         );
@@ -449,7 +457,7 @@ public class DashboardBasePanel extends JPanel {
                     } else if ("ALTA".equals(item.getPriority())) {
                         setBackground(new Color(255, 248, 230)); // Laranja muito claro
                     } else if ("NORMAL".equals(item.getPriority())) {
-                        setBackground(new Color(255, 253, 230)); // Amarelo muito claro
+                        setBackground(new Color(225, 239, 252)); // Azul muito claro
                     } else if ("BAIXA".equals(item.getPriority())) {
                         setBackground(new Color(240, 255, 240)); // Verde muito claro
                     } else {
@@ -511,14 +519,13 @@ public class DashboardBasePanel extends JPanel {
          */
         private String getPriorityHTML(String priority) {
             if (priority == null) return "<span style='color: #999;'>●</span>";
-            
             switch (priority.toUpperCase()) {
                 case "URGENTE":
                     return "<span style='color: #dc3545; font-weight: bold;'>●</span>";
                 case "ALTA":
                     return "<span style='color: #fd7e14; font-weight: bold;'>●</span>";
                 case "NORMAL":
-                    return "<span style='color: #ffc107; font-weight: bold;'>●</span>";
+                    return "<span style='color: #2196f3; font-weight: bold;'>●</span>"; // Azul
                 case "BAIXA":
                     return "<span style='color: #28a745; font-weight: bold;'>●</span>";
                 default:
@@ -745,12 +752,12 @@ public class DashboardBasePanel extends JPanel {
             // Priorizar mostrar o nome do utilizador se existir
             String username = task.getUsername();
             if (username != null && !username.isEmpty() && !username.equalsIgnoreCase("null")) {
-                return "👤 " + username;
+                return username;
             } else if (task.isAssignedToTeam()) {
                 String teamName = task.getAssignedTeamName();
-                return "� " + (teamName != null ? teamName : "Equipa");
+                return teamName != null ? teamName : "Equipa";
             } else {
-                return "👤 Individual";
+                return "Não atribuído";
             }
         }
         
@@ -781,29 +788,27 @@ public class DashboardBasePanel extends JPanel {
                 // Configurar fonte consistente
                 setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
                 
-                // Coluna da prioridade com bolinha colorida usando HTML
+                // Coluna da prioridade com bolinha colorida usando HTML (apenas dashboard)
                 if (column == 0 && value != null) {
-                    String priorityHTML = getPriorityHTML(value.toString());
-                    setText(priorityHTML);
-                } else {
-                    setText(value != null ? value.toString() : "");
-                }
-                
-                // Cores de fundo por prioridade (se não selecionado)
-                if (!isSelected) {
-                    if (task.isOverdue()) {
-                        setBackground(new Color(255, 235, 235)); // Rosa claro para atrasadas
-                    } else if ("URGENTE".equals(task.getPriority())) {
-                        setBackground(new Color(255, 245, 245)); // Vermelho muito claro
-                    } else if ("ALTA".equals(task.getPriority())) {
-                        setBackground(new Color(255, 248, 230)); // Laranja muito claro
-                    } else if ("NORMAL".equals(task.getPriority())) {
-                        setBackground(new Color(255, 253, 230)); // Amarelo muito claro
-                    } else if ("BAIXA".equals(task.getPriority())) {
-                        setBackground(new Color(240, 255, 240)); // Verde muito claro
-                    } else {
+                    String priority = value.toString();
+                    setText(getPriorityHTML(priority));
+                    // Fundo azul suave para prioridade NORMAL
+                    if (!isSelected && "NORMAL".equals(priority.toUpperCase())) {
+                        setBackground(new Color(225, 239, 252)); // Azul suave
+                    } else if (!isSelected && "URGENTE".equals(priority.toUpperCase())) {
+                        setBackground(new Color(255, 245, 245));
+                    } else if (!isSelected && "ALTA".equals(priority.toUpperCase())) {
+                        setBackground(new Color(255, 248, 230));
+                    } else if (!isSelected && "BAIXA".equals(priority.toUpperCase())) {
+                        setBackground(new Color(240, 255, 240));
+                    } else if (!isSelected && task.isOverdue()) {
+                        setBackground(new Color(255, 235, 235));
+                    } else if (!isSelected) {
                         setBackground(Color.WHITE);
                     }
+                } else {
+                    setText(value != null ? value.toString() : "");
+                    if (!isSelected) setBackground(Color.WHITE);
                 }
                 
                 // Alinhamento das colunas
@@ -826,7 +831,7 @@ public class DashboardBasePanel extends JPanel {
             switch (priority.toUpperCase()) {
                 case "URGENTE": return "<html><span style='color: #dc3545; font-size: 16px;'>●</span></html>";
                 case "ALTA": return "<html><span style='color: #fd7e14; font-size: 16px;'>●</span></html>";
-                case "NORMAL": return "<html><span style='color: #ffc107; font-size: 16px;'>●</span></html>";
+                case "NORMAL": return "<html><span style='color: #2196f3; font-size: 16px;'>●</span></html>"; // Azul
                 case "BAIXA": return "<html><span style='color: #28a745; font-size: 16px;'>●</span></html>";
                 default: return "<html><span style='color: #999; font-size: 16px;'>○</span></html>";
             }
