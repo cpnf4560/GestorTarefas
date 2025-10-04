@@ -245,29 +245,52 @@ public class TaskCommentsDialog extends JDialog {
     private void displayComments(List<Map<String, Object>> comments) {
         StringBuilder sb = new StringBuilder();
         
-        for (int i = 0; i < comments.size(); i++) {
-            Map<String, Object> comment = comments.get(i);
-            
-            String userName = getStringValue(comment, "user", "fullName", "Utilizador");
-            String commentText = getStringValue(comment, "commentText", "");
-            String createdAt = getStringValue(comment, "createdAt", "");
-            Boolean isSystemMessage = (Boolean) comment.get("isSystemMessage");
-            
-            // Formatar data
-            String formattedDate = formatDateTime(createdAt);
-            
-            if (Boolean.TRUE.equals(isSystemMessage)) {
-                // Mensagem do sistema
-                sb.append("🔔 ").append(formattedDate).append(" - SISTEMA\n");
-                sb.append("   ").append(commentText).append("\n");
-            } else {
-                // Comentário normal
-                sb.append("💬 ").append(formattedDate).append(" - ").append(userName).append("\n");
-                sb.append("   ").append(commentText).append("\n");
-            }
-            
-            if (i < comments.size() - 1) {
-                sb.append("\n");
+        if (comments.isEmpty()) {
+            sb.append("Nenhum comentário ainda.\nSeja o primeiro a comentar!");
+        } else {
+            for (int i = 0; i < comments.size(); i++) {
+                Map<String, Object> comment = comments.get(i);
+                
+                // Extrair dados do comentário
+                String userName = extractUserName(comment);
+                String commentText = getStringValue(comment, "commentText", "");
+                String createdAt = getStringValue(comment, "createdAt", "");
+                Boolean isSystemMessage = (Boolean) comment.get("isSystemMessage");
+                
+                // Debug - imprimir dados do comentário
+                System.out.println("DEBUG - Comentário " + i + ":");
+                System.out.println("  commentText bruto: [" + comment.get("commentText") + "]");
+                System.out.println("  commentText extraído: [" + commentText + "]");
+                System.out.println("  commentText length: " + (commentText != null ? commentText.length() : "null"));
+                System.out.println("  userName: [" + userName + "]");
+                System.out.println("  Todas as chaves: " + comment.keySet());
+                
+                // Verificar se comentText está vazio e forçar um valor para debug
+                if (commentText == null || commentText.trim().isEmpty()) {
+                    Object rawText = comment.get("commentText");
+                    commentText = "[DEBUG] Texto vazio - Raw: [" + rawText + "] - Tipo: " + 
+                                 (rawText != null ? rawText.getClass().getSimpleName() : "null");
+                } else {
+                    // Garantir que o texto não seja perdido
+                    commentText = commentText.trim();
+                }
+                
+                // Formatar data e hora
+                String formattedDate = formatDateTime(createdAt);
+                
+                if (Boolean.TRUE.equals(isSystemMessage)) {
+                    // Mensagem do sistema
+                    sb.append("🔔 ").append(formattedDate).append(" - SISTEMA\n");
+                    sb.append("   ").append(commentText).append("\n");
+                } else {
+                    // Comentário normal do usuário
+                    sb.append("💬 ").append(formattedDate).append(" - ").append(userName).append("\n");
+                    sb.append("   ").append(commentText).append("\n");
+                }
+                
+                if (i < comments.size() - 1) {
+                    sb.append("\n");
+                }
             }
         }
         
@@ -275,26 +298,88 @@ public class TaskCommentsDialog extends JDialog {
         commentsArea.setCaretPosition(commentsArea.getDocument().getLength());
     }
     
-    private String getStringValue(Map<String, Object> map, String... keys) {
-        Object current = map;
-        for (String key : keys) {
-            if (current instanceof Map) {
-                current = ((Map<?, ?>) current).get(key);
-            } else {
-                return keys[keys.length - 1]; // return default (last key)
+    /**
+     * Extrai o nome do utilizador do comentário, tentando várias estruturas possíveis
+     */
+    private String extractUserName(Map<String, Object> comment) {
+        // Tentar obter de várias formas possíveis
+        
+        // 1. Objeto user completo
+        Object userObj = comment.get("user");
+        if (userObj instanceof Map) {
+            Map<?, ?> userMap = (Map<?, ?>) userObj;
+            
+            // Tentar fullName primeiro
+            Object fullName = userMap.get("fullName");
+            if (fullName != null && !fullName.toString().trim().isEmpty()) {
+                return fullName.toString();
+            }
+            
+            // Tentar username
+            Object username = userMap.get("username");
+            if (username != null && !username.toString().trim().isEmpty()) {
+                return username.toString();
+            }
+            
+            // Tentar email
+            Object email = userMap.get("email");
+            if (email != null && !email.toString().trim().isEmpty()) {
+                return email.toString();
             }
         }
-        return current != null ? current.toString() : keys[keys.length - 1];
+        
+        // 2. Campos diretos no comentário
+        Object userName = comment.get("userName");
+        if (userName != null && !userName.toString().trim().isEmpty()) {
+            return userName.toString();
+        }
+        
+        Object userFullName = comment.get("userFullName");
+        if (userFullName != null && !userFullName.toString().trim().isEmpty()) {
+            return userFullName.toString();
+        }
+        
+        Object username = comment.get("username");
+        if (username != null && !username.toString().trim().isEmpty()) {
+            return username.toString();
+        }
+        
+        // 3. Fallback para userId
+        Object userId = comment.get("userId");
+        if (userId != null) {
+            return "Utilizador #" + userId.toString();
+        }
+        
+        // 4. Último recurso
+        return "Utilizador Desconhecido";
+    }
+    
+    private String getStringValue(Map<String, Object> map, String key, String defaultValue) {
+        Object value = map.get(key);
+        return value != null ? value.toString() : defaultValue;
     }
     
     private String formatDateTime(String dateTimeStr) {
         try {
-            // Assumir formato ISO ou similar
-            if (dateTimeStr != null && dateTimeStr.length() >= 16) {
-                return dateTimeStr.substring(0, 16).replace("T", " ");
+            if (dateTimeStr != null && !dateTimeStr.trim().isEmpty()) {
+                // Tentar parse do formato ISO 8601 do backend
+                if (dateTimeStr.contains("T")) {
+                    LocalDateTime dateTime = LocalDateTime.parse(dateTimeStr.substring(0, 19));
+                    return dateTime.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+                } else if (dateTimeStr.length() >= 16) {
+                    // Formato alternativo
+                    return dateTimeStr.substring(0, 16).replace("T", " ");
+                }
             }
         } catch (Exception e) {
-            // Ignorar erro de formatação
+            // Em caso de erro, usar formato simples
+            try {
+                if (dateTimeStr != null && dateTimeStr.length() >= 16) {
+                    return dateTimeStr.substring(0, 16).replace("T", " ");
+                }
+            } catch (Exception ex) {
+                // Ignorar
+            }
         }
         return dateTimeStr != null ? dateTimeStr : "Data desconhecida";
     }

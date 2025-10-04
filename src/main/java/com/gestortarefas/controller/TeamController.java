@@ -124,7 +124,7 @@ public class TeamController {
         try {
             User requester = userService.findById(requesterId)
                 .orElseThrow(() -> new IllegalArgumentException("Utilizador não encontrado"));
-            Team team = teamService.updateTeam(id, request.getName(), request.getDescription(), requester);
+            Team team = teamService.updateTeam(id, request.getName(), request.getDescription(), request.getActive(), requester);
             return ResponseEntity.ok(team);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -353,6 +353,7 @@ public class TeamController {
     public static class TeamUpdateRequest {
         private String name;
         private String description;
+        private Boolean active;
 
         // Getters e Setters
         public String getName() { return name; }
@@ -360,5 +361,8 @@ public class TeamController {
 
         public String getDescription() { return description; }
         public void setDescription(String description) { this.description = description; }
+
+        public Boolean getActive() { return active; }
+        public void setActive(Boolean active) { this.active = active; }
     }
 }

@@ -137,8 +137,10 @@ public class UserEditDialog extends JDialog {
     
     private void loadTeams() {
         try {
+            System.out.println("DEBUG UserEditDialog: Carregando equipas...");
             List<Map<String, Object>> teams = apiClient.getTeamsSummary();
             if (teams != null) {
+                System.out.println("DEBUG UserEditDialog: Encontradas " + teams.size() + " equipas");
                 teamNameToIdMap.clear();
                 for (Map<String, Object> team : teams) {
                     String teamName = (String) team.get("name");
@@ -146,10 +148,15 @@ public class UserEditDialog extends JDialog {
                     
                     teamComboBox.addItem(teamName);
                     teamNameToIdMap.put(teamName, teamId);
+                    System.out.println("DEBUG UserEditDialog: Adicionada equipa: " + teamName + " (ID: " + teamId + ")");
                 }
+                System.out.println("DEBUG UserEditDialog: teamNameToIdMap final = " + teamNameToIdMap);
+            } else {
+                System.out.println("DEBUG UserEditDialog: teams é null!");
             }
         } catch (Exception e) {
             System.err.println("Erro ao carregar equipas: " + e.getMessage());
+            e.printStackTrace();
             JOptionPane.showMessageDialog(this, 
                 "Aviso: Não foi possível carregar as equipas disponíveis.", 
                 "Aviso", JOptionPane.WARNING_MESSAGE);
@@ -187,13 +194,23 @@ public class UserEditDialog extends JDialog {
             userData.put("role", role);
             userData.put("active", active);
             
+            System.out.println("DEBUG UserEditDialog: selectedTeam = '" + selectedTeam + "'");
+            System.out.println("DEBUG UserEditDialog: teamNameToIdMap = " + teamNameToIdMap);
+            
             // Adicionar equipa se selecionada
             if (selectedTeam != null && !selectedTeam.equals("-- Sem Equipa --")) {
                 Long teamId = teamNameToIdMap.get(selectedTeam);
                 if (teamId != null) {
                     userData.put("teamId", teamId);
+                    System.out.println("DEBUG UserEditDialog: Adicionando teamId = " + teamId);
+                } else {
+                    System.out.println("DEBUG UserEditDialog: teamId é null para selectedTeam = " + selectedTeam);
                 }
+            } else {
+                System.out.println("DEBUG UserEditDialog: Sem equipa selecionada ou é '-- Sem Equipa --'");
             }
+            
+            System.out.println("DEBUG UserEditDialog: userData final = " + userData);
             
             // Atualizar via API real
             boolean success = apiClient.updateUser(userId, userData);

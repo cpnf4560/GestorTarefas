@@ -1,6 +1,7 @@
 package com.gestortarefas.controller;
 
 import com.gestortarefas.model.User;
+import com.gestortarefas.model.Team;
 import com.gestortarefas.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -270,6 +271,18 @@ public class UserController {
         userResponse.put("active", user.getActive());
         userResponse.put("createdAt", user.getCreatedAt());
         userResponse.put("role", user.getRole().name());
+        
+        // Adicionar informação da equipa
+        if (user.getTeams() != null && !user.getTeams().isEmpty()) {
+            // Assumir que o utilizador pertence a uma equipa principal (primeira da lista)
+            Team primaryTeam = user.getTeams().get(0);
+            userResponse.put("teamId", primaryTeam.getId());
+            userResponse.put("teamName", primaryTeam.getName());
+        } else {
+            userResponse.put("teamId", null);
+            userResponse.put("teamName", null);
+        }
+        
         return userResponse;
     }
 }

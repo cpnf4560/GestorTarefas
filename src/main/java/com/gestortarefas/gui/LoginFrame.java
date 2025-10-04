@@ -466,46 +466,47 @@ public class LoginFrame extends JFrame {
         // Aba ADMINISTRADORES
         JPanel adminPanel = createUserButtonsPanel(new String[][]{
             {"martim.sottomayor", "👑 Martim Sottomayor"},
-            {"catarina.balsemao", "👑 Catarina Balsemão"}
+            {"catarina.balsemao", "👑 Catarina Balsemão"},
+            {"admin.correia", "👑 Admin Carlos Correia"}
         }, new Color(220, 53, 69));
-        tabbedPane.addTab("👑 Admins (2)", adminPanel);
+        tabbedPane.addTab("👑 Admins (3)", adminPanel);
         
         // Aba GERENTES
         JPanel managerPanel = createUserButtonsPanel(new String[][]{
-            {"lucile.almeida", "👨‍💼 Lucile Almeida"},
-            {"bessa.ribeiro", "👨‍💼 Bessa Ribeiro"},
-            {"diana.brochado", "👨‍💼 Diana Brochado"},
-            {"paulo.bessa", "👨‍💼 Paulo Bessa"},
-            {"vania.lourenco", "👨‍💼 Vânia Lourenço"}
+            {"lucile.almeida", "👨‍💼 Lucile Almeida - Gestão Admin"},
+            {"bessa.ribeiro", "👨‍💼 Bessa Ribeiro - Financeiro"},
+            {"diana.brochado", "👨‍💼 Diana Brochado - Compras"},
+            {"paulo.bessa", "👨‍💼 Paulo Bessa - Produção"},
+            {"pedro.lopes", "👨‍💼 Pedro Lopes - Apoio Cliente"},
+            {"antonio.nolasco", "👨‍💼 António Nolasco - Logística"},
+            {"rui.goncalves", "👨‍💼 Rui Gonçalves - Comercial"}
         }, new Color(255, 193, 7));
-        tabbedPane.addTab("👨‍💼 Gerentes (5)", managerPanel);
+        tabbedPane.addTab("👨‍💼 Gerentes (7)", managerPanel);
         
-        // Aba FUNCIONÁRIOS (divididos em duas colunas devido ao número)
+        // Aba FUNCIONÁRIOS (organizados por departamento)
         JPanel employeePanel = createScrollableUserPanel(new String[][]{
-            {"ana.reis", "👨‍💻 Ana Reis"},
-            {"joao.couto", "👨‍💻 João Couto"},
-            {"carla.silva", "👨‍💻 Carla Silva"},
-            {"rodrigo.silva", "👨‍💻 Rodrigo Silva"},
-            {"silvia.silva", "👨‍💻 Sílvia Silva"},
-            {"ines.rodrigues", "👨‍💻 Inês Rodrigues"},
-            {"rita.almeida", "👨‍💻 Rita Almeida"},
-            {"sandra.rocha", "👨‍💻 Sandra Rocha"},
-            {"monica.lewinsky", "👨‍💻 Monica Lewinsky"},
-            {"sara.pereira", "👨‍💻 Sara Pereira"},
-            {"sofia.barbosa", "👨‍💻 Sofia Barbosa"},
-            {"daniela.torres", "👨‍💻 Daniela Torres"},
-            {"joaquina.torres", "👨‍💻 Joaquina Torres"},
-            {"madalena.gomes", "👨‍💻 Madalena Gomes"},
-            {"melinda.szekely", "👨‍💻 Melinda Szekely"},
-            {"rita.oliveira", "👨‍💻 Rita Oliveira"},
-            {"cristiana.oliveira", "👨‍💻 Cristiana Oliveira"},
-            {"carolina.tavares", "👨‍💻 Carolina Tavares"},
-            {"filipa.medeiros", "👨‍💻 Filipa Medeiros"},
-            {"adelina.gaspar", "👨‍💻 Adelina Gaspar"},
-            {"anca.tusa", "👨‍💻 Anca Tusa"},
-            {"antonio.nolasco", "👨‍💻 António Nolasco"}
+            {"rita.almeida", "👨‍💻 Rita Almeida - Admin"},
+            {"sandra.rocha", "👨‍💻 Sandra Rocha - Admin"},
+            {"ricardo.leal", "👨‍💻 Ricardo Leal - Admin"},
+            {"carla.silva", "👨‍💻 Carla Silva - Financeiro"},
+            {"melinda.szekely", "👨‍💻 Melinda Szekely - Financeiro"},
+            {"tatiana.albuquerque", "👨‍💻 Tatiana Albuquerque - Compras"},
+            {"rita.oliveira", "👨‍💻 Rita Oliveira - Compras"},
+            {"ana.reis", "👨‍💻 Ana Reis - Comercial"},
+            {"joao.couto", "👨‍💻 João Couto - Comercial"},
+            {"ines.rodrigues", "👨‍💻 Inês Rodrigues - Comercial"},
+            {"teresa.correia", "👨‍💻 Teresa Correia - Comercial"},
+            {"vania.lourenco", "👨‍💻 Vânia Lourenço - Logística"},
+            {"anca.tusa", "👨‍💻 Anca Tusa - Logística"},
+            {"rogerio.silva", "👨‍💻 Rogério Silva - Produção"},
+            {"tiago.rodrigues", "👨‍💻 Tiago Rodrigues - Produção"},
+            {"mohammad.aldossari", "👨‍💻 Mohammad Al-Dossari - Produção"},
+            {"vijay.kumar", "👨‍💻 Vijay Kumar - Produção"},
+            {"sanita.rahman", "👨‍💻 Sanita Rahman - Produção"},
+            {"monica.lewinsky", "👨‍💻 Mónica Lewinsky - Apoio Cliente"},
+            {"cristiana.oliveira", "👨‍💻 Cristiana Oliveira - Apoio Cliente"}
         }, new Color(40, 167, 69));
-        tabbedPane.addTab("👨‍💻 Funcionários (22)", employeePanel);
+        tabbedPane.addTab("👨‍💻 Funcionários (20)", employeePanel);
         
         mainPanel.add(tabbedPane, BorderLayout.CENTER);
         return mainPanel;

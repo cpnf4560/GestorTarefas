@@ -51,11 +51,16 @@ public class TaskCommentController {
                 comments = taskCommentRepository.findByTaskIdOrderByCreatedAtDesc(taskId);
             }
 
+            // Criar lista de comentários com dados do utilizador explícitos
+            List<Map<String, Object>> commentsWithUserData = comments.stream()
+                .map(this::createCommentResponse)
+                .toList();
+
             Map<String, Object> response = new HashMap<>();
             response.put("taskId", taskId);
             response.put("taskTitle", taskOpt.get().getTitle());
             response.put("total", comments.size());
-            response.put("comments", comments);
+            response.put("comments", commentsWithUserData);
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -265,5 +270,36 @@ public class TaskCommentController {
         public void setIsSystemMessage(Boolean isSystemMessage) {
             this.isSystemMessage = isSystemMessage;
         }
+    }
+    
+    /**
+     * Criar resposta do comentário com dados do utilizador explícitos
+     */
+    private Map<String, Object> createCommentResponse(TaskComment comment) {
+        Map<String, Object> commentData = new HashMap<>();
+        
+        commentData.put("id", comment.getId());
+        commentData.put("commentText", comment.getCommentText());
+        commentData.put("createdAt", comment.getCreatedAt());
+        commentData.put("updatedAt", comment.getUpdatedAt());
+        commentData.put("isSystemMessage", comment.getIsSystemMessage());
+        commentData.put("userId", comment.getUser().getId());
+        
+        // Dados do utilizador explícitos
+        Map<String, Object> userData = new HashMap<>();
+        userData.put("id", comment.getUser().getId());
+        userData.put("username", comment.getUser().getUsername());
+        userData.put("fullName", comment.getUser().getFullName());
+        userData.put("email", comment.getUser().getEmail());
+        
+        commentData.put("user", userData);
+        
+        // Também incluir dados diretos para compatibilidade
+        commentData.put("userName", comment.getUser().getFullName() != null ? 
+            comment.getUser().getFullName() : comment.getUser().getUsername());
+        commentData.put("userFullName", comment.getUser().getFullName());
+        commentData.put("username", comment.getUser().getUsername());
+        
+        return commentData;
     }
 }

@@ -6,6 +6,7 @@ import com.gestortarefas.view.dialogs.TaskCommentsDialog;
 import javax.swing.*;
 import java.awt.*;
 import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Dashboard específico para funcionários
@@ -128,12 +129,14 @@ public class EmployeeDashboardPanel extends DashboardBasePanel {
     
     private void openNewTaskDialog() {
         try {
-            Window parentWindow = SwingUtilities.getWindowAncestor(this);
-            TaskCreateDialog dialog = new TaskCreateDialog(
-                parentWindow, 
-                currentUserId, 
-                apiClient,
-                this::refreshDashboard
+            // Criar map com dados do utilizador
+            Map<String, Object> currentUserData = new HashMap<>();
+            currentUserData.put("id", currentUserId);
+            
+            // Usar TaskDialog com campos de atribuição
+            com.gestortarefas.gui.TaskDialog dialog = new com.gestortarefas.gui.TaskDialog(
+                null, // Parent pode ser null
+                currentUserData
             );
             dialog.setVisible(true);
         } catch (Exception e) {

@@ -483,7 +483,7 @@ public class AdminDashboardPanel extends DashboardBasePanel {
                         String fullName = (String) user.getOrDefault("fullName", "N/A");
                         String email = (String) user.get("email");
                         String role = user.get("role") != null ? user.get("role").toString() : "N/A";
-                        String teamName = "N/A"; // Por implementar associação de equipas
+                        String teamName = (String) user.getOrDefault("teamName", "N/A");
                         boolean active = (Boolean) user.getOrDefault("active", true);
                         String createdAt = user.get("createdAt") != null ? user.get("createdAt").toString() : "N/A";
                         
@@ -1059,12 +1059,14 @@ public class AdminDashboardPanel extends DashboardBasePanel {
     // Métodos da aba de Tarefas
     private void createNewTask() {
         try {
-            Window parentWindow = SwingUtilities.getWindowAncestor(this);
-            TaskCreateDialog dialog = new TaskCreateDialog(
-                parentWindow, 
-                currentUserId, 
-                new com.gestortarefas.util.RestApiClient(),
-                this::refreshDashboard
+            // Criar map com dados do utilizador para o TaskDialog
+            Map<String, Object> currentUserData = new HashMap<>();
+            currentUserData.put("id", currentUserId);
+            
+            // Usar TaskDialog com campos de atribuição completos
+            com.gestortarefas.gui.TaskDialog dialog = new com.gestortarefas.gui.TaskDialog(
+                null, // Parent pode ser null
+                currentUserData
             );
             dialog.setVisible(true);
         } catch (Exception e) {
@@ -1153,7 +1155,7 @@ public class AdminDashboardPanel extends DashboardBasePanel {
                 String name = (column == 1) ? newValue : currentName;
                 String description = (column == 2) ? newValue : currentDescription;
                 
-                success = apiClient.updateTeam(Long.parseLong(teamId), name, description, currentUserId);
+                success = apiClient.updateTeam(Long.parseLong(teamId), name, description, null, currentUserId);
                 
             } else if (column == 3) {
                 // Coluna Gestor (3)

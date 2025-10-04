@@ -3,6 +3,7 @@ package com.gestortarefas.util;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.http.*;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
@@ -19,7 +20,12 @@ public class RestApiClient {
     private final ObjectMapper objectMapper;
     
     public RestApiClient() {
-        this.restTemplate = new RestTemplate();
+        // Configurar timeouts para evitar problemas de conexão
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000); // 5 segundos para conectar
+        factory.setReadTimeout(10000);   // 10 segundos para ler resposta
+        
+        this.restTemplate = new RestTemplate(factory);
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
     }
@@ -135,13 +141,16 @@ public class RestApiClient {
     /**
      * Atualiza uma equipa
      */
-    public boolean updateTeam(Long teamId, String name, String description, Long requesterId) {
+    public boolean updateTeam(Long teamId, String name, String description, Boolean active, Long requesterId) {
         try {
             String url = BASE_URL + "/teams/" + teamId;
             
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("name", name);
             requestBody.put("description", description);
+            if (active != null) {
+                requestBody.put("active", active);
+            }
             
             HttpHeaders headers = new HttpHeaders();
             headers.set("User-Id", requesterId.toString());
@@ -165,8 +174,9 @@ public class RestApiClient {
             // Primeiro atualizar dados básicos da equipa
             String name = (String) teamData.get("name");
             String description = (String) teamData.get("description");
+            Boolean active = (Boolean) teamData.get("active");
             
-            boolean basicUpdateSuccess = updateTeam(teamId, name, description, requesterId);
+            boolean basicUpdateSuccess = updateTeam(teamId, name, description, active, requesterId);
             if (!basicUpdateSuccess) {
                 return false;
             }

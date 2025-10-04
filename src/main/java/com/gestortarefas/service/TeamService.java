@@ -96,7 +96,7 @@ public class TeamService {
     /**
      * Atualiza uma equipa
      */
-    public Team updateTeam(Long teamId, String name, String description, User requester) {
+    public Team updateTeam(Long teamId, String name, String description, Boolean active, User requester) {
         Team team = getTeamById(teamId);
 
         // Verificar permissões
@@ -115,6 +115,10 @@ public class TeamService {
 
         if (description != null) {
             team.setDescription(description);
+        }
+
+        if (active != null) {
+            team.setActive(active);
         }
 
         return teamRepository.save(team);

@@ -78,15 +78,36 @@ public class TaskController {
             Long userId = ((Number) taskData.get("userId")).longValue();
             String priorityStr = (String) taskData.get("priority");
             String dueDateStr = (String) taskData.get("dueDate");
+            Long createdByUserId = taskData.get("createdByUserId") != null ? 
+                ((Number) taskData.get("createdByUserId")).longValue() : userId;
+            Long assignedTeamId = taskData.get("assignedTeamId") != null ? 
+                ((Number) taskData.get("assignedTeamId")).longValue() : null;
+            Long assignedUserId = taskData.get("assignedUserId") != null ? 
+                ((Number) taskData.get("assignedUserId")).longValue() : null;
+            Boolean isAssignedToTeam = taskData.get("isAssignedToTeam") != null ? 
+                (Boolean) taskData.get("isAssignedToTeam") : false;
             
             System.out.println("TaskController: Parsed data - title: " + title + ", userId: " + userId + 
-                             ", priority: " + priorityStr + ", dueDate: " + dueDateStr);
+                             ", priority: " + priorityStr + ", dueDate: " + dueDateStr +
+                             ", createdBy: " + createdByUserId + ", teamId: " + assignedTeamId +
+                             ", assignedUserId: " + assignedUserId + ", isTeamTask: " + isAssignedToTeam);
             
-            Optional<User> userOpt = userService.findById(userId);
+            // Determinar o utilizador final baseado na atribuição
+            Long finalUserId = assignedUserId != null ? assignedUserId : userId;
+            
+            Optional<User> userOpt = userService.findById(finalUserId);
             if (userOpt.isEmpty()) {
-                System.out.println("TaskController: User not found for ID: " + userId);
+                System.out.println("TaskController: User not found for ID: " + finalUserId);
                 response.put("success", false);
-                response.put("message", "Utilizador não encontrado");
+                response.put("message", "Utilizador atribuído não encontrado");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            Optional<User> createdByOpt = userService.findById(createdByUserId);
+            if (createdByOpt.isEmpty()) {
+                System.out.println("TaskController: Creator not found for ID: " + createdByUserId);
+                response.put("success", false);
+                response.put("message", "Criador não encontrado");
                 return ResponseEntity.badRequest().body(response);
             }
             
@@ -98,14 +119,34 @@ public class TaskController {
                 dueDate = LocalDateTime.parse(dueDateStr);
             }
             
-            System.out.println("TaskController: Creating task with priority: " + priority + ", dueDate: " + dueDate);
+            // Determinar a equipa baseado na atribuição
+            Team assignedTeam = null;
+            User assignedUser = userOpt.get();
             
-            Task task;
-            if (dueDate != null) {
-                task = taskService.createTask(title, description, priority, dueDate, userOpt.get());
+            if (isAssignedToTeam && assignedTeamId != null) {
+                // Tarefa atribuída especificamente a uma equipa
+                assignedTeam = teamRepository.findById(assignedTeamId).orElse(null);
+                System.out.println("TaskController: Task assigned to team: " + 
+                                 (assignedTeam != null ? assignedTeam.getName() : "Team not found"));
             } else {
-                task = taskService.createTask(title, description, priority, userOpt.get());
+                // Tarefa individual - automaticamente associada à primeira equipa do utilizador
+                // para que apareça nas visualizações do gerente
+                if (!assignedUser.getTeams().isEmpty()) {
+                    assignedTeam = assignedUser.getTeams().get(0);
+                    System.out.println("TaskController: Individual task auto-assigned to team: " + 
+                                     assignedTeam.getName() + " for monitoring by manager");
+                }
             }
+            
+            System.out.println("TaskController: Creating task with priority: " + priority + 
+                             ", dueDate: " + dueDate + ", team: " + 
+                             (assignedTeam != null ? assignedTeam.getName() : "none"));
+            
+            Task task = taskService.createTaskWithTeam(
+                title, description, priority, dueDate, 
+                assignedUser, assignedTeam, createdByOpt.get(), 
+                null, null // tags e estimatedHours
+            );
             
             System.out.println("TaskController: Task created successfully with ID: " + task.getId());
             
@@ -755,6 +796,151 @@ public class TaskController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                     .body(Map.of("error", "Erro ao atribuir tarefa: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Reatribuir uma tarefa a outro utilizador ou equipa
+     */
+    @PutMapping("/{id}/reassign")
+    public ResponseEntity<Map<String, Object>> reassignTask(@PathVariable Long id, @RequestBody Map<String, Object> reassignData) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            System.out.println("TaskController: Reassigning task " + id + " with data: " + reassignData);
+            
+            // Verificar se a tarefa existe
+            Optional<Task> taskOpt = taskRepository.findById(id);
+            if (!taskOpt.isPresent()) {
+                response.put("success", false);
+                response.put("message", "Tarefa não encontrada");
+                return ResponseEntity.status(404).body(response);
+            }
+            
+            Task task = taskOpt.get();
+            
+            // Extrair dados da reatribuição
+            Long assignedUserId = reassignData.get("assignedUserId") != null ? 
+                ((Number) reassignData.get("assignedUserId")).longValue() : null;
+            Long assignedTeamId = reassignData.get("assignedTeamId") != null ? 
+                ((Number) reassignData.get("assignedTeamId")).longValue() : null;
+            Boolean isAssignedToTeam = reassignData.get("isAssignedToTeam") != null ? 
+                (Boolean) reassignData.get("isAssignedToTeam") : false;
+            
+            // Guardar informação da atribuição anterior para histórico
+            String previousAssignment = task.getAssignmentInfo();
+            
+            // Limpar atribuições anteriores
+            task.setAssignedTeam(null);
+            
+            String newAssignmentInfo = "";
+            
+            if (isAssignedToTeam && assignedTeamId != null) {
+                // Atribuir a equipa
+                Optional<Team> teamOpt = teamRepository.findById(assignedTeamId);
+                if (!teamOpt.isPresent()) {
+                    response.put("success", false);
+                    response.put("message", "Equipa não encontrada");
+                    return ResponseEntity.status(404).body(response);
+                }
+                
+                Team team = teamOpt.get();
+                task.setAssignedTeam(team);
+                // Para tarefas de equipa, manter o utilizador original ou usar o primeiro gerente da equipa
+                if (task.getUser() == null) {
+                    // Se não há utilizador definido, usar o criador da tarefa ou admin
+                    Optional<User> adminOpt = userRepository.findByUsername("admin");
+                    if (adminOpt.isPresent()) {
+                        task.setUser(adminOpt.get());
+                    }
+                }
+                newAssignmentInfo = "Equipa: " + team.getName();
+                
+                System.out.println("TaskController: Task reassigned to team: " + team.getName());
+            } else if (assignedUserId != null) {
+                // Atribuir a utilizador específico
+                Optional<User> userOpt = userRepository.findById(assignedUserId);
+                if (!userOpt.isPresent()) {
+                    response.put("success", false);
+                    response.put("message", "Utilizador não encontrado");
+                    return ResponseEntity.status(404).body(response);
+                }
+                
+                User user = userOpt.get();
+                if (!user.getActive()) {
+                    response.put("success", false);
+                    response.put("message", "Utilizador não está ativo");
+                    return ResponseEntity.status(400).body(response);
+                }
+                
+                task.setUser(user);
+                
+                // Para tarefas individuais, também associar à equipa do utilizador para visibilidade do gerente
+                if (user.getTeams() != null && !user.getTeams().isEmpty()) {
+                    task.setAssignedTeam(user.getTeams().get(0)); // Usar primeira equipa
+                }
+                
+                newAssignmentInfo = "Utilizador: " + user.getFullName();
+                if (user.getTeams() != null && !user.getTeams().isEmpty()) {
+                    newAssignmentInfo += " (Equipa: " + user.getTeams().get(0).getName() + ")";
+                }
+                
+                System.out.println("TaskController: Task reassigned to user: " + user.getFullName());
+            } else {
+                response.put("success", false);
+                response.put("message", "Deve especificar um utilizador ou equipa para atribuição");
+                return ResponseEntity.status(400).body(response);
+            }
+            
+            // Atualizar timestamp de modificação
+            task.setUpdatedAt(LocalDateTime.now());
+            
+            // Guardar mudanças
+            Task savedTask = taskRepository.save(task);
+            
+            // Criar comentário automático do sistema sobre a reatribuição
+            if (taskCommentRepository != null) {
+                try {
+                    String reassignmentMessage = String.format(
+                        "Tarefa reatribuída de [%s] para [%s]", 
+                        previousAssignment != null ? previousAssignment : "Não atribuída", 
+                        newAssignmentInfo
+                    );
+                    
+                    // Usar o utilizador do sistema ou o primeiro admin encontrado
+                    Optional<User> systemUserOpt = userRepository.findByUsername("admin");
+                    if (!systemUserOpt.isPresent()) {
+                        systemUserOpt = userRepository.findAll().stream()
+                            .filter(u -> u.getRole().name().contains("ADMIN"))
+                            .findFirst();
+                    }
+                    
+                    if (systemUserOpt.isPresent()) {
+                        TaskComment systemComment = new TaskComment(savedTask, systemUserOpt.get(), reassignmentMessage, true);
+                        taskCommentRepository.save(systemComment);
+                    }
+                } catch (Exception e) {
+                    // Não falhar a reatribuição se o comentário falhar
+                    System.err.println("Erro ao criar comentário do sistema: " + e.getMessage());
+                }
+            }
+            
+            response.put("success", true);
+            response.put("message", "Tarefa reatribuída com sucesso");
+            response.put("task", savedTask);
+            response.put("newAssignment", newAssignmentInfo);
+            response.put("previousAssignment", previousAssignment);
+            
+            System.out.println("TaskController: Task reassignment completed successfully");
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            System.err.println("TaskController: Error reassigning task: " + e.getMessage());
+            e.printStackTrace();
+            
+            response.put("success", false);
+            response.put("message", "Erro interno do servidor: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
         }
     }
 

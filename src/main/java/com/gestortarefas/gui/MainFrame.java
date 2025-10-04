@@ -320,8 +320,18 @@ public class MainFrame extends JFrame {
     }
 
     private void openNewTaskDialog() {
-        TaskDialog dialog = new TaskDialog(this, null, currentUser);
-        dialog.setVisible(true);
+        System.out.println("🎯 Opening TaskDialog for NEW task!");
+        System.out.println("🔍 CurrentUser: " + (currentUser != null ? "OK" : "NULL"));
+        try {
+            TaskDialog dialog = new TaskDialog(this, currentUser);
+            System.out.println("✅ TaskDialog NEW created successfully!");
+            dialog.setVisible(true);
+            System.out.println("✅ TaskDialog NEW visible!");
+        } catch (Exception e) {
+            System.err.println("❌ ERROR creating TaskDialog: " + e.getMessage());
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Erro ao criar dialog de nova tarefa: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void editSelectedTask() {

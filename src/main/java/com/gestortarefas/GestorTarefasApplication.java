@@ -76,10 +76,10 @@ public class GestorTarefasApplication {
         // Iniciar a interface gráfica Swing na EDT (Event Dispatch Thread)
         SwingUtilities.invokeLater(() -> {
             try {
-                new MainWindow().setVisible(true);
+                new LoginFrame().setVisible(true);
                 System.out.println("Interface gráfica iniciada com sucesso!");
                 System.out.println("Servidor Spring Boot rodando em: http://localhost:8080");
-                System.out.println("Console H2 disponível em: http://localhost:8080/h2-console");
+                System.out.println("LoginFrame iniciado com sucesso!");
             } catch (Exception e) {
                 e.printStackTrace();
                 System.err.println("Erro ao iniciar interface gráfica: " + e.getMessage());
