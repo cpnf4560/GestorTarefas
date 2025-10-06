@@ -19,7 +19,6 @@ public class TaskDialog extends JDialog {
     
     private Long taskId; // null para nova tarefa
     private Map<String, Object> currentUser;
-    private MainFrame parentFrame;
     
     private JTextField titleField;
     private JTextArea descriptionArea;
@@ -42,13 +41,12 @@ public class TaskDialog extends JDialog {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     // Constructor para EDITAR tarefa existente
-    public TaskDialog(MainFrame parent, Long taskId, Map<String, Object> user) {
-        super(parent, "Editar Tarefa", true);
+    public TaskDialog(Window parent, Long taskId, Map<String, Object> user) {
+        super(parent, "Editar Tarefa", ModalityType.APPLICATION_MODAL);
         System.out.println("\n\n=== TaskDialog EDIT CONSTRUCTOR CALLED ===");
         System.out.println("TaskDialog: Creating EDIT task dialog for taskId: " + taskId);
         System.out.println("TaskDialog: User info: " + user);
         System.out.println("=== TaskDialog EDIT CONSTRUCTOR DONE ===\n");
-        this.parentFrame = parent;
         this.taskId = taskId;
         this.currentUser = user;
         this.isEditMode = true;
@@ -63,13 +61,12 @@ public class TaskDialog extends JDialog {
     }
     
     // Constructor para CRIAR nova tarefa
-    public TaskDialog(MainFrame parent, Map<String, Object> user) {
-        super(parent, "Nova Tarefa", true);
+    public TaskDialog(Window parent, Map<String, Object> user) {
+        super(parent, "Nova Tarefa", ModalityType.APPLICATION_MODAL);
         System.out.println("\n\n=== TaskDialog NEW CONSTRUCTOR CALLED ===");
         System.out.println("TaskDialog: Creating NEW task dialog");
         System.out.println("TaskDialog: User info: " + user);
         System.out.println("=== TaskDialog NEW CONSTRUCTOR DONE ===\n");
-        this.parentFrame = parent;
         this.taskId = null;
         this.currentUser = user;
         this.isEditMode = false;
@@ -616,9 +613,6 @@ public class TaskDialog extends JDialog {
                     if ((Boolean) result.get("success")) {
                         showStatus(isEditMode ? "Tarefa atualizada com sucesso!" : "Tarefa criada com sucesso!", 
                                  new Color(0, 120, 0));
-                        
-                        // Atualizar tabela principal
-                        parentFrame.refreshTasks();
                         
                         // Fechar dialog após 1.5 segundos
                         Timer timer = new Timer(1500, e -> dispose());
