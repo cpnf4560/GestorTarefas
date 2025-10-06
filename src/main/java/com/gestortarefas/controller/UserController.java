@@ -4,6 +4,7 @@ import com.gestortarefas.model.User;
 import com.gestortarefas.model.Team;
 import com.gestortarefas.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -193,6 +194,36 @@ public class UserController {
         }
         
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Elimina utilizador
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable Long id) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            boolean success = userService.deleteUser(id);
+            
+            if (success) {
+                response.put("success", true);
+                response.put("message", "Utilizador eliminado com sucesso");
+            } else {
+                response.put("success", false);
+                response.put("message", "Utilizador não encontrado");
+            }
+            
+            return ResponseEntity.ok(response);
+        } catch (IllegalStateException e) {
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Erro interno do servidor");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
 
     /**

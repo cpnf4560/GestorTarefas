@@ -167,6 +167,181 @@ public class TaskController {
     }
 
     /**
+     * Lista todas as tarefas do sistema com suporte a filtros, ordenação e paginação
+     * 
+     * @param status Filtro por status (opcional): PENDENTE, EM_ANDAMENTO, CONCLUIDA, CANCELADA
+     * @param priority Filtro por prioridade (opcional): BAIXA, NORMAL, ALTA, CRITICA
+     * @param assignedUserId Filtro por utilizador atribuído (opcional)
+     * @param teamId Filtro por equipa (opcional)
+     * @param search Termo de pesquisa no título e descrição (opcional)
+     * @param sortBy Campo para ordenação (opcional): title, priority, dueDate, createdAt, status
+     * @param sortDirection Direção da ordenação (opcional): asc, desc
+     * @param page Número da página (opcional, default: 0)
+     * @param size Tamanho da página (opcional, default: 50)
+     * @return Lista paginada de tarefas com metadados
+     */
+    @GetMapping
+    public ResponseEntity<Map<String, Object>> getAllTasks(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String priority,
+            @RequestParam(required = false) Long assignedUserId,
+            @RequestParam(required = false) Long teamId,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "createdAt") String sortBy,
+            @RequestParam(required = false, defaultValue = "desc") String sortDirection,
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "50") int size) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            // Buscar todas as tarefas do repositório
+            List<Task> allTasks = taskRepository.findAll();
+            
+            // Aplicar filtros
+            List<Task> filteredTasks = allTasks.stream()
+                .filter(task -> {
+                    // Filtro por status
+                    if (status != null && !status.trim().isEmpty()) {
+                        try {
+                            TaskStatus statusEnum = TaskStatus.valueOf(status.toUpperCase());
+                            if (task.getStatus() != statusEnum) {
+                                return false;
+                            }
+                        } catch (IllegalArgumentException e) {
+                            return false;
+                        }
+                    }
+                    
+                    // Filtro por prioridade
+                    if (priority != null && !priority.trim().isEmpty()) {
+                        try {
+                            TaskPriority priorityEnum = TaskPriority.valueOf(priority.toUpperCase());
+                            if (task.getPriority() != priorityEnum) {
+                                return false;
+                            }
+                        } catch (IllegalArgumentException e) {
+                            return false;
+                        }
+                    }
+                    
+                    // Filtro por utilizador atribuído
+                    if (assignedUserId != null) {
+                        if (task.getUser() == null || !task.getUser().getId().equals(assignedUserId)) {
+                            return false;
+                        }
+                    }
+                    
+                    // Filtro por equipa
+                    if (teamId != null) {
+                        if (task.getAssignedTeam() == null || !task.getAssignedTeam().getId().equals(teamId)) {
+                            return false;
+                        }
+                    }
+                    
+                    // Filtro por pesquisa no título e descrição
+                    if (search != null && !search.trim().isEmpty()) {
+                        String searchTerm = search.toLowerCase();
+                        String title = task.getTitle() != null ? task.getTitle().toLowerCase() : "";
+                        String description = task.getDescription() != null ? task.getDescription().toLowerCase() : "";
+                        
+                        if (!title.contains(searchTerm) && !description.contains(searchTerm)) {
+                            return false;
+                        }
+                    }
+                    
+                    return true;
+                })
+                .sorted((t1, t2) -> {
+                    // Aplicar ordenação
+                    int comparison = 0;
+                    
+                    switch (sortBy.toLowerCase()) {
+                        case "title":
+                            comparison = String.CASE_INSENSITIVE_ORDER.compare(
+                                t1.getTitle() != null ? t1.getTitle() : "",
+                                t2.getTitle() != null ? t2.getTitle() : ""
+                            );
+                            break;
+                        case "priority":
+                            comparison = Integer.compare(
+                                t1.getPriority().ordinal(),
+                                t2.getPriority().ordinal()
+                            );
+                            break;
+                        case "duedate":
+                            LocalDateTime date1 = t1.getDueDate();
+                            LocalDateTime date2 = t2.getDueDate();
+                            if (date1 == null && date2 == null) comparison = 0;
+                            else if (date1 == null) comparison = 1;
+                            else if (date2 == null) comparison = -1;
+                            else comparison = date1.compareTo(date2);
+                            break;
+                        case "status":
+                            comparison = Integer.compare(
+                                t1.getStatus().ordinal(),
+                                t2.getStatus().ordinal()
+                            );
+                            break;
+                        case "createdat":
+                        default:
+                            comparison = t1.getCreatedAt().compareTo(t2.getCreatedAt());
+                            break;
+                    }
+                    
+                    return sortDirection.equalsIgnoreCase("desc") ? -comparison : comparison;
+                })
+                .toList();
+            
+            // Aplicar paginação
+            int totalElements = filteredTasks.size();
+            int totalPages = (int) Math.ceil((double) totalElements / size);
+            int fromIndex = page * size;
+            int toIndex = Math.min(fromIndex + size, totalElements);
+            
+            List<Task> paginatedTasks = filteredTasks.subList(fromIndex, toIndex);
+            
+            // Converter para resposta JSON
+            List<Map<String, Object>> tasksList = paginatedTasks.stream()
+                .map(this::createTaskResponse)
+                .toList();
+            
+            // Criar resposta com metadados de paginação
+            response.put("success", true);
+            response.put("tasks", tasksList);
+            response.put("pagination", Map.of(
+                "currentPage", page,
+                "totalPages", totalPages,
+                "totalElements", totalElements,
+                "pageSize", size,
+                "hasNext", page < totalPages - 1,
+                "hasPrevious", page > 0
+            ));
+            response.put("filters", Map.of(
+                "status", status != null ? status : "",
+                "priority", priority != null ? priority : "",
+                "assignedUserId", assignedUserId != null ? assignedUserId : "",
+                "teamId", teamId != null ? teamId : "",
+                "search", search != null ? search : "",
+                "sortBy", sortBy,
+                "sortDirection", sortDirection
+            ));
+            
+            System.out.println("TaskController: Found " + totalElements + " tasks (showing " + 
+                             paginatedTasks.size() + " on page " + page + ")");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            System.out.println("TaskController: Error fetching all tasks: " + e.getMessage());
+            e.printStackTrace();
+            response.put("success", false);
+            response.put("message", "Erro ao buscar tarefas: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    /**
      * Lista todas as tarefas de um utilizador
      */
     @GetMapping("/user/{userId}")

@@ -167,7 +167,7 @@ public class DashboardController {
             // Para tarefas de hoje, usar um método genérico
             dashboard.put("today", taskService.findTasksDueSoon());
             dashboard.put("overdue", taskService.findOverdueTasks());
-            dashboard.put("completed", taskService.findTasksByStatus(Task.TaskStatus.CONCLUIDA));
+            dashboard.put("completed", taskService.findCompletedTasksLast3Days());
             
             // Estatísticas globais
             Map<String, Object> globalStats = taskService.getOverallTaskStats();

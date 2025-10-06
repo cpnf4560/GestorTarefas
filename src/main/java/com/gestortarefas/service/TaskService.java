@@ -415,11 +415,17 @@ public class TaskService {
     }
 
     /**
-     * Dashboard - Busca tarefas concluídas do utilizador
+     * Dashboard - Busca tarefas concluídas do utilizador (apenas dos últimos 3 dias)
      */
     @Transactional(readOnly = true)
     public List<Task> getCompletedTasksForUser(User user) {
-        return taskRepository.findByUserAndStatus(user, TaskStatus.CONCLUIDA);
+        LocalDateTime threeDaysAgo = LocalDateTime.now().minusDays(3);
+        List<Task> allCompleted = taskRepository.findByUserAndStatus(user, TaskStatus.CONCLUIDA);
+        
+        // Filtrar apenas tarefas concluídas nos últimos 3 dias
+        return allCompleted.stream()
+            .filter(task -> task.getCompletedAt() != null && task.getCompletedAt().isAfter(threeDaysAgo))
+            .collect(java.util.stream.Collectors.toList());
     }
 
     /**
@@ -456,14 +462,21 @@ public class TaskService {
     }
 
     /**
-     * Dashboard - Busca tarefas concluídas da equipa
+     * Dashboard - Busca tarefas concluídas da equipa (apenas dos últimos 3 dias)
      */
     @Transactional(readOnly = true)
     public List<Task> getCompletedTasksForTeam(Team team, User requester) {
         if (!canViewTeamTasks(team, requester)) {
             throw new IllegalArgumentException("Sem permissão para ver tarefas desta equipa");
         }
-        return taskRepository.findByAssignedTeamAndStatus(team, TaskStatus.CONCLUIDA);
+        
+        LocalDateTime threeDaysAgo = LocalDateTime.now().minusDays(3);
+        List<Task> allCompleted = taskRepository.findByAssignedTeamAndStatus(team, TaskStatus.CONCLUIDA);
+        
+        // Filtrar apenas tarefas concluídas nos últimos 3 dias
+        return allCompleted.stream()
+            .filter(task -> task.getCompletedAt() != null && task.getCompletedAt().isAfter(threeDaysAgo))
+            .collect(java.util.stream.Collectors.toList());
     }
 
     /**
@@ -587,6 +600,20 @@ public class TaskService {
         return user.getRole().isAdmin() || 
                team.getManager().equals(user) || 
                team.getMembers().contains(user);
+    }
+
+    /**
+     * Busca todas as tarefas concluídas dos últimos 3 dias (para dashboard admin)
+     */
+    @Transactional(readOnly = true)
+    public List<Task> findCompletedTasksLast3Days() {
+        LocalDateTime threeDaysAgo = LocalDateTime.now().minusDays(3);
+        List<Task> allCompleted = taskRepository.findByStatus(TaskStatus.CONCLUIDA);
+        
+        // Filtrar apenas tarefas concluídas nos últimos 3 dias
+        return allCompleted.stream()
+            .filter(task -> task.getCompletedAt() != null && task.getCompletedAt().isAfter(threeDaysAgo))
+            .collect(java.util.stream.Collectors.toList());
     }
 
     /**

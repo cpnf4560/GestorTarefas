@@ -4,6 +4,7 @@ import com.gestortarefas.model.LoggedUser;
 import com.gestortarefas.view.dashboard.AdminDashboardPanel;
 import com.gestortarefas.view.dashboard.EmployeeDashboardPanel;
 import com.gestortarefas.view.dashboard.ManagerDashboardPanel;
+import com.gestortarefas.gui.LoginFrame;
 
 import javax.swing.*;
 import java.awt.*;
@@ -139,18 +140,16 @@ public class MainWindow extends JFrame {
     }
     
     /**
-     * Mostra o diálogo de login
+     * Mostra a UI de login moderna (LoginFrame)
      */
     private void showLoginDialog() {
-        LoginDialog loginDialog = new LoginDialog(this);
-        loginDialog.setVisible(true);
-        
-        LoggedUser user = loginDialog.getLoggedUser();
-        if (user != null) {
-            setCurrentUser(user);
-        } else {
-            System.exit(0); // Fechar aplicação se cancelar login
-        }
+        // Migrado para usar o LoginFrame moderno: fecha esta janela e abre a nova UI de login
+        SwingUtilities.invokeLater(() -> {
+            try {
+                dispose();
+            } catch (Exception ignored) {}
+            new LoginFrame().setVisible(true);
+        });
     }
     
     /**
@@ -287,12 +286,9 @@ public class MainWindow extends JFrame {
         
         if (result == JOptionPane.YES_OPTION) {
             currentUser = null;
-            contentPanel.removeAll();
-            contentPanel.revalidate();
-            contentPanel.repaint();
-            
-            updateStatus("Logout efetuado");
-            showLoginDialog();
+            // Fechar esta janela e abrir a tela de Login moderna
+            dispose();
+            new LoginFrame().setVisible(true);
         }
     }
     

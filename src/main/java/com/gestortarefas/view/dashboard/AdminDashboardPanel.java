@@ -6,6 +6,8 @@ import com.gestortarefas.view.dialogs.TaskCreateDialog;
 import com.gestortarefas.view.dialogs.TeamCreateDialog;
 import com.gestortarefas.view.dialogs.TeamEditDialog;
 import com.gestortarefas.view.dialogs.TaskCommentsDialog;
+import com.gestortarefas.util.TableAutoResizer;
+import com.gestortarefas.gui.Colors;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -14,6 +16,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
 /**
  * Dashboard específico para administradores
@@ -24,8 +27,19 @@ public class AdminDashboardPanel extends DashboardBasePanel {
     private JTabbedPane mainTabbedPane;
     private DefaultTableModel usersTableModel;
     private DefaultTableModel teamsTableModel;
+    private DefaultTableModel tasksTableModel;
     private JTable usersTable;
     private JTable teamsTable;
+    private JTable tasksTable;
+    
+    // Componentes para filtros e pesquisa de tarefas
+    private JTextField searchField;
+    private JComboBox<String> statusFilter;
+    private JComboBox<String> priorityFilter;
+    private JComboBox<String> userFilter;
+    private JComboBox<String> teamFilter;
+    private JComboBox<String> sortByCombo;
+    private JComboBox<String> sortDirectionCombo;
     
     public AdminDashboardPanel(Long adminId) {
         super(adminId);
@@ -37,12 +51,24 @@ public class AdminDashboardPanel extends DashboardBasePanel {
         // Remover componentes padrão e reorganizar layout
         removeAll();
         setLayout(new BorderLayout());
+        setBackground(Colors.PANEL_BACKGROUND);
         
         // Painel superior com informações do admin
         JPanel adminPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        adminPanel.setBackground(Colors.CARD_BACKGROUND);
+        adminPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(Colors.BORDER_COLOR, 1),
+            BorderFactory.createEmptyBorder(10, 15, 10, 15)
+        ));
+        
         adminInfoLabel = new JLabel("Carregando informações do administrador...");
         adminInfoLabel.setFont(adminInfoLabel.getFont().deriveFont(Font.BOLD, 14f));
-        adminPanel.add(new JLabel("Administrador: "));
+        adminInfoLabel.setForeground(Colors.DARK_GRAY);
+        
+        JLabel adminLabel = new JLabel("Administrador: ");
+        adminLabel.setForeground(Colors.DARK_GRAY);
+        
+        adminPanel.add(adminLabel);
         adminPanel.add(adminInfoLabel);
         
         add(adminPanel, BorderLayout.NORTH);
@@ -156,9 +182,12 @@ public class AdminDashboardPanel extends DashboardBasePanel {
     private JPanel createTasksTab() {
         JPanel tasksTab = new JPanel(new BorderLayout());
         
-        // Painel superior com botões de ação
+        // Painel superior com controles
+        JPanel topPanel = new JPanel(new BorderLayout());
+        
+        // Painel de ações (Nova Tarefa, Atualizar, Exportar)
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        actionPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        actionPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         
         JButton newTaskBtn = new JButton("✚ Nova Tarefa");
         newTaskBtn.setBackground(new Color(70, 130, 180));
@@ -167,7 +196,7 @@ public class AdminDashboardPanel extends DashboardBasePanel {
         newTaskBtn.addActionListener(e -> createNewTask());
         
         JButton refreshTasksBtn = new JButton("🔄 Atualizar");
-        refreshTasksBtn.addActionListener(e -> refreshTasksList());
+        refreshTasksBtn.addActionListener(e -> loadAllTasks());
         
         JButton exportTasksBtn = new JButton("📤 Exportar");
         exportTasksBtn.addActionListener(e -> exportAllTasks());
@@ -176,19 +205,95 @@ public class AdminDashboardPanel extends DashboardBasePanel {
         actionPanel.add(refreshTasksBtn);
         actionPanel.add(exportTasksBtn);
         
-        tasksTab.add(actionPanel, BorderLayout.NORTH);
+        // Painel de filtros e pesquisa
+        JPanel filtersPanel = createTaskFiltersPanel();
         
-        // Área central com lista de tarefas globais
+        topPanel.add(actionPanel, BorderLayout.NORTH);
+        topPanel.add(filtersPanel, BorderLayout.CENTER);
+        
+        tasksTab.add(topPanel, BorderLayout.NORTH);
+        
+        // Área central com tabela de tarefas
         JPanel tasksListPanel = new JPanel(new BorderLayout());
-        tasksListPanel.setBorder(BorderFactory.createTitledBorder("Todas as Tarefas do Sistema"));
+        tasksListPanel.setBorder(BorderFactory.createTitledBorder("Arquivo de Tarefas do Sistema"));
         
-        // Aqui você pode adicionar a tabela de tarefas
-        JLabel placeholder = new JLabel("<html><center>📋<br><br>Lista de todas as tarefas do sistema<br>será implementada aqui</center></html>", SwingConstants.CENTER);
-        placeholder.setFont(placeholder.getFont().deriveFont(16f));
-        placeholder.setForeground(Color.GRAY);
+        // Criar tabela de tarefas
+        String[] taskColumns = {
+            "ID", "Título", "Descrição", "Status", "Prioridade", 
+            "Atribuído a", "Equipa", "Criado Por", "Data Criação", 
+            "Data Limite", "Data Conclusão", "Ações"
+        };
         
-        tasksListPanel.add(placeholder, BorderLayout.CENTER);
+        tasksTableModel = new DefaultTableModel(taskColumns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == taskColumns.length - 1; // Apenas coluna "Ações" é editável
+            }
+        };
+        
+        tasksTable = new JTable(tasksTableModel);
+        tasksTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        tasksTable.setRowHeight(32);
+        tasksTable.getTableHeader().setReorderingAllowed(false);
+        
+        // Aplicar tema moderno
+        Colors.applyModernTable(tasksTable);
+        
+        // Aplicar alinhamento central exceto para Título (1) e Descrição (2)
+        Colors.applyCenterAlignment(tasksTable, 1, 2);
+        
+        // Configurar larguras das colunas
+        tasksTable.getColumnModel().getColumn(0).setPreferredWidth(50);  // ID
+        tasksTable.getColumnModel().getColumn(1).setPreferredWidth(150); // Título
+        tasksTable.getColumnModel().getColumn(2).setPreferredWidth(200); // Descrição
+        tasksTable.getColumnModel().getColumn(3).setPreferredWidth(100); // Status
+        tasksTable.getColumnModel().getColumn(4).setPreferredWidth(80);  // Prioridade
+        tasksTable.getColumnModel().getColumn(5).setPreferredWidth(120); // Atribuído a
+        tasksTable.getColumnModel().getColumn(6).setPreferredWidth(100); // Equipa
+        tasksTable.getColumnModel().getColumn(7).setPreferredWidth(120); // Criado Por
+        tasksTable.getColumnModel().getColumn(8).setPreferredWidth(120); // Data Criação
+        tasksTable.getColumnModel().getColumn(9).setPreferredWidth(120); // Data Limite
+        tasksTable.getColumnModel().getColumn(10).setPreferredWidth(120); // Data Conclusão
+        tasksTable.getColumnModel().getColumn(11).setPreferredWidth(100); // Ações
+        
+        // Adicionar listener para duplo clique na tabela
+        tasksTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    int selectedRow = tasksTable.getSelectedRow();
+                    if (selectedRow >= 0) {
+                        viewTaskDetails(selectedRow);
+                    }
+                }
+            }
+        });
+        
+        // Ordenação por clique no cabeçalho
+        tasksTable.getTableHeader().addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int column = tasksTable.columnAtPoint(e.getPoint());
+                sortTasksByColumn(column);
+            }
+        });
+        
+        JScrollPane tasksScrollPane = new JScrollPane(tasksTable);
+        tasksScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        tasksScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        
+        // Usar TableAutoResizer para criar painel com botão de auto-redimensionamento
+        JPanel tableWithAutoResize = TableAutoResizer.createTablePanelWithAutoResize(tasksTable, tasksScrollPane);
+        tasksListPanel.add(tableWithAutoResize, BorderLayout.CENTER);
+        
+        // Painel inferior com informações de paginação
+        JPanel paginationPanel = createPaginationPanel();
+        tasksListPanel.add(paginationPanel, BorderLayout.SOUTH);
+        
         tasksTab.add(tasksListPanel, BorderLayout.CENTER);
+        
+        // Carregar dados iniciais
+        loadAllTasks();
         
         return tasksTab;
     }
@@ -224,6 +329,14 @@ public class AdminDashboardPanel extends DashboardBasePanel {
         
         usersTable = new JTable(usersTableModel);
         usersTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        usersTable.setRowHeight(32);
+        
+        // Aplicar tema moderno
+        Colors.applyModernTable(usersTable);
+        
+        // Aplicar alinhamento central exceto para Nome Completo (2)
+        Colors.applyCenterAlignment(usersTable, 2);
+        
         usersTable.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -236,8 +349,11 @@ public class AdminDashboardPanel extends DashboardBasePanel {
         JScrollPane usersScrollPane = new JScrollPane(usersTable);
         usersScrollPane.setPreferredSize(new Dimension(700, 400));
         
+        // Usar TableAutoResizer para criar painel com botão de auto-redimensionamento
+        JPanel usersTableWithAutoResize = TableAutoResizer.createTablePanelWithAutoResize(usersTable, usersScrollPane);
+        
         usersTab.add(controlsPanel, BorderLayout.NORTH);
-        usersTab.add(usersScrollPane, BorderLayout.CENTER);
+        usersTab.add(usersTableWithAutoResize, BorderLayout.CENTER);
         
         return usersTab;
     }
@@ -275,6 +391,13 @@ public class AdminDashboardPanel extends DashboardBasePanel {
         
         teamsTable = new JTable(teamsTableModel);
         teamsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        teamsTable.setRowHeight(32);
+        
+        // Aplicar tema moderno
+        Colors.applyModernTable(teamsTable);
+        
+        // Aplicar alinhamento central exceto para Nome (1) e Descrição (2)
+        Colors.applyCenterAlignment(teamsTable, 1, 2);
         
         // Adicionar listener para capturar mudanças na tabela
         teamsTableModel.addTableModelListener(e -> {
@@ -291,8 +414,11 @@ public class AdminDashboardPanel extends DashboardBasePanel {
         JScrollPane teamsScrollPane = new JScrollPane(teamsTable);
         teamsScrollPane.setPreferredSize(new Dimension(700, 400));
         
+        // Usar TableAutoResizer para criar painel com botão de auto-redimensionamento
+        JPanel teamsTableWithAutoResize = TableAutoResizer.createTablePanelWithAutoResize(teamsTable, teamsScrollPane);
+        
         teamsTab.add(controlsPanel, BorderLayout.NORTH);
-        teamsTab.add(teamsScrollPane, BorderLayout.CENTER);
+        teamsTab.add(teamsTableWithAutoResize, BorderLayout.CENTER);
         
         return teamsTab;
     }
@@ -704,11 +830,11 @@ public class AdminDashboardPanel extends DashboardBasePanel {
             
             if (result == JOptionPane.YES_OPTION) {
                 try {
-                    // Simular eliminação via API 
-                    // Note: RestApiClient não tem método deleteUser, então simularemos
-                    boolean success = true; // Simular sucesso
+                    // Eliminar utilizador via API
+                    com.gestortarefas.util.RestApiClient apiClient = new com.gestortarefas.util.RestApiClient();
+                    Map<String, Object> response = apiClient.deleteUser(userId);
                     
-                    if (success) {
+                    if (response != null && Boolean.TRUE.equals(response.get("success"))) {
                         // Remover da tabela
                         model.removeRow(selectedRow);
                         
@@ -721,8 +847,12 @@ public class AdminDashboardPanel extends DashboardBasePanel {
                         loadAllUsers();
                         
                     } else {
+                        String errorMessage = response != null ? 
+                            (String) response.get("message") : 
+                            "Erro desconhecido ao eliminar utilizador";
+                        
                         JOptionPane.showMessageDialog(this, 
-                            "Erro ao eliminar o utilizador. Tente novamente.",
+                            errorMessage,
                             "Erro", 
                             JOptionPane.ERROR_MESSAGE);
                     }
@@ -984,6 +1114,27 @@ public class AdminDashboardPanel extends DashboardBasePanel {
         return value != null ? value.toString() : defaultValue;
     }
     
+    /**
+     * Retorna a prioridade formatada com bolinha colorida
+     */
+    private String getPriorityWithBall(String priority) {
+        if (priority == null) return "<html><span style='color: #999;'>●</span> N/A</html>";
+        switch (priority.toUpperCase()) {
+            case "URGENTE":
+                return "<html><span style='color: #dc3545; font-size: 14px; font-weight: bold;'>●</span> Urgente</html>";
+            case "ALTA":
+                return "<html><span style='color: #fd7e14; font-size: 14px; font-weight: bold;'>●</span> Alta</html>";
+            case "NORMAL":
+                return "<html><span style='color: #2196f3; font-size: 14px; font-weight: bold;'>●</span> Normal</html>";
+            case "BAIXA":
+                return "<html><span style='color: #28a745; font-size: 14px; font-weight: bold;'>●</span> Baixa</html>";
+            case "CRITICA":
+                return "<html><span style='color: #dc3545; font-size: 14px; font-weight: bold;'>●</span> Crítica</html>";
+            default:
+                return "<html><span style='color: #999; font-size: 14px;'>○</span> " + priority + "</html>";
+        }
+    }
+    
     private Long getLongValue(Map<String, Object> map, String key) {
         Object value = map.get(key);
         if (value instanceof Number) {
@@ -1053,7 +1204,11 @@ public class AdminDashboardPanel extends DashboardBasePanel {
     }
     
     private void showAllTasks() {
-        JOptionPane.showMessageDialog(this, "Visualização de Todas as Tarefas - Implementar janela dedicada");
+        // Mudar para o separador "Tarefas" (índice 1)
+        mainTabbedPane.setSelectedIndex(1);
+        
+        // Atualizar a lista de tarefas para garantir que está atualizada
+        loadAllTasks();
     }
     
     // Métodos da aba de Tarefas
@@ -1220,6 +1375,348 @@ public class AdminDashboardPanel extends DashboardBasePanel {
                 "Erro ao abrir comentários da tarefa: " + e.getMessage(), 
                 "Erro", 
                 JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    // ======================== MÉTODOS PARA O ARQUIVO DE TAREFAS ========================
+    
+    /**
+     * Cria o painel de filtros e pesquisa para tarefas
+     */
+    private JPanel createTaskFiltersPanel() {
+        JPanel filtersPanel = new JPanel(new BorderLayout());
+        filtersPanel.setBorder(BorderFactory.createTitledBorder("Filtros e Pesquisa"));
+        
+        // Painel superior com pesquisa
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        searchPanel.add(new JLabel("Pesquisar:"));
+        searchField = new JTextField(20);
+        searchField.addActionListener(e -> applyFilters());
+        searchPanel.add(searchField);
+        
+        JButton searchBtn = new JButton("🔍 Pesquisar");
+        searchBtn.addActionListener(e -> applyFilters());
+        searchPanel.add(searchBtn);
+        
+        JButton clearBtn = new JButton("🔄 Limpar");
+        clearBtn.addActionListener(e -> clearFilters());
+        searchPanel.add(clearBtn);
+        
+        // Painel inferior com combos de filtro
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        
+        // Filtro por Status
+        filterPanel.add(new JLabel("Status:"));
+        statusFilter = new JComboBox<>(new String[]{"Todos", "PENDENTE", "EM_ANDAMENTO", "CONCLUIDA", "CANCELADA"});
+        statusFilter.addActionListener(e -> applyFilters());
+        filterPanel.add(statusFilter);
+        
+        // Filtro por Prioridade
+        filterPanel.add(new JLabel("Prioridade:"));
+        priorityFilter = new JComboBox<>(new String[]{"Todas", "BAIXA", "NORMAL", "ALTA", "CRITICA"});
+        priorityFilter.addActionListener(e -> applyFilters());
+        filterPanel.add(priorityFilter);
+        
+        // Filtro por Utilizador
+        filterPanel.add(new JLabel("Utilizador:"));
+        userFilter = new JComboBox<>(new String[]{"Todos"});
+        userFilter.addActionListener(e -> applyFilters());
+        filterPanel.add(userFilter);
+        
+        // Filtro por Equipa
+        filterPanel.add(new JLabel("Equipa:"));
+        teamFilter = new JComboBox<>(new String[]{"Todas"});
+        teamFilter.addActionListener(e -> applyFilters());
+        filterPanel.add(teamFilter);
+        
+        // Ordenação
+        filterPanel.add(new JLabel("Ordenar por:"));
+        sortByCombo = new JComboBox<>(new String[]{"createdAt", "title", "priority", "dueDate", "status"});
+        sortByCombo.addActionListener(e -> applyFilters());
+        filterPanel.add(sortByCombo);
+        
+        sortDirectionCombo = new JComboBox<>(new String[]{"desc", "asc"});
+        sortDirectionCombo.addActionListener(e -> applyFilters());
+        filterPanel.add(sortDirectionCombo);
+        
+        filtersPanel.add(searchPanel, BorderLayout.NORTH);
+        filtersPanel.add(filterPanel, BorderLayout.CENTER);
+        
+        return filtersPanel;
+    }
+    
+    /**
+     * Cria o painel de paginação
+     */
+    private JPanel createPaginationPanel() {
+        JPanel paginationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        paginationPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        
+        JButton prevBtn = new JButton("◀ Anterior");
+        prevBtn.addActionListener(e -> previousPage());
+        
+        JLabel pageInfo = new JLabel("Página 1 de 1");
+        
+        JButton nextBtn = new JButton("Próxima ▶");
+        nextBtn.addActionListener(e -> nextPage());
+        
+        paginationPanel.add(prevBtn);
+        paginationPanel.add(pageInfo);
+        paginationPanel.add(nextBtn);
+        
+        return paginationPanel;
+    }
+    
+    /**
+     * Carrega todas as tarefas do sistema
+     */
+    private void loadAllTasks() {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                if (tasksTableModel != null) {
+                    tasksTableModel.setRowCount(0);
+                }
+                
+                // Fazer chamada à API para buscar todas as tarefas
+                Map<String, String> filters = getCurrentFilters();
+                Map<String, Object> response = apiClient.getAllTasks(filters);
+                
+                if (response != null && (Boolean) response.get("success")) {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> tasks = (List<Map<String, Object>>) response.get("tasks");
+                    
+                    for (Map<String, Object> task : tasks) {
+                        addTaskToTable(task);
+                    }
+                    
+                    System.out.println("AdminDashboard: Loaded " + tasks.size() + " tasks");
+                }
+                
+            } catch (Exception e) {
+                System.err.println("Erro ao carregar tarefas: " + e.getMessage());
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(this,
+                    "Erro ao carregar tarefas: " + e.getMessage(),
+                    "Erro",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        });
+    }
+    
+    /**
+     * Adiciona uma tarefa à tabela
+     */
+    private void addTaskToTable(Map<String, Object> task) {
+        Object[] rowData = new Object[12];
+        
+        rowData[0] = task.get("id");
+        rowData[1] = task.get("title");
+        rowData[2] = truncateText((String) task.get("description"), 50);
+        rowData[3] = task.get("status");
+        rowData[4] = task.get("priority");
+        
+        @SuppressWarnings("unchecked")
+        Map<String, Object> user = (Map<String, Object>) task.get("user");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> team = (Map<String, Object>) task.get("assignedTeam");
+        
+        // Coluna "Atribuído a": mostrar utilizador primeiro, senão equipa
+        if (user != null) {
+            rowData[5] = user.get("displayName");
+        } else if (team != null) {
+            rowData[5] = team.get("name");
+        } else {
+            rowData[5] = "Não atribuído";
+        }
+        
+        // Coluna "Equipa": sempre mostrar a equipa se existir
+        rowData[6] = team != null ? team.get("name") : "Individual";
+        
+        @SuppressWarnings("unchecked")
+        Map<String, Object> createdBy = (Map<String, Object>) task.get("createdBy");
+        rowData[7] = createdBy != null ? createdBy.get("displayName") : "N/A";
+        
+        rowData[8] = formatDateTime((String) task.get("createdAt"));
+        rowData[9] = formatDateTime((String) task.get("dueDate"));
+        rowData[10] = formatDateTime((String) task.get("completedAt"));
+        rowData[11] = "Ver Detalhes";
+        
+        tasksTableModel.addRow(rowData);
+    }
+    
+    /**
+     * Obtém os filtros atuais
+     */
+    private Map<String, String> getCurrentFilters() {
+        Map<String, String> filters = new HashMap<>();
+        
+        if (searchField != null && !searchField.getText().trim().isEmpty()) {
+            filters.put("search", searchField.getText().trim());
+        }
+        
+        if (statusFilter != null && !statusFilter.getSelectedItem().equals("Todos")) {
+            filters.put("status", (String) statusFilter.getSelectedItem());
+        }
+        
+        if (priorityFilter != null && !priorityFilter.getSelectedItem().equals("Todas")) {
+            filters.put("priority", (String) priorityFilter.getSelectedItem());
+        }
+        
+        if (sortByCombo != null) {
+            filters.put("sortBy", (String) sortByCombo.getSelectedItem());
+        }
+        
+        if (sortDirectionCombo != null) {
+            filters.put("sortDirection", (String) sortDirectionCombo.getSelectedItem());
+        }
+        
+        return filters;
+    }
+    
+    /**
+     * Aplica os filtros selecionados
+     */
+    private void applyFilters() {
+        loadAllTasks();
+    }
+    
+    /**
+     * Limpa todos os filtros
+     */
+    private void clearFilters() {
+        if (searchField != null) searchField.setText("");
+        if (statusFilter != null) statusFilter.setSelectedIndex(0);
+        if (priorityFilter != null) priorityFilter.setSelectedIndex(0);
+        if (userFilter != null) userFilter.setSelectedIndex(0);
+        if (teamFilter != null) teamFilter.setSelectedIndex(0);
+        if (sortByCombo != null) sortByCombo.setSelectedIndex(0);
+        if (sortDirectionCombo != null) sortDirectionCombo.setSelectedIndex(0);
+        
+        loadAllTasks();
+    }
+    
+    /**
+     * Visualiza detalhes de uma tarefa
+     */
+    private void viewTaskDetails(int selectedRow) {
+        try {
+            Object taskId = tasksTableModel.getValueAt(selectedRow, 0);
+            if (taskId != null) {
+                Map<String, Object> task = apiClient.getTaskById(Long.valueOf(taskId.toString()));
+                if (task != null) {
+                    showTaskDetailsFromMap(task);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                "Erro ao visualizar detalhes da tarefa: " + e.getMessage(),
+                "Erro",
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Mostra detalhes de uma tarefa a partir de um Map
+     */
+    private void showTaskDetailsFromMap(Map<String, Object> taskData) {
+        StringBuilder details = new StringBuilder();
+        details.append("=== DETALHES DA TAREFA ===\n\n");
+        details.append("ID: ").append(taskData.get("id")).append("\n");
+        details.append("Título: ").append(taskData.get("title")).append("\n");
+        details.append("Descrição: ").append(taskData.get("description")).append("\n");
+        details.append("Status: ").append(taskData.get("status")).append("\n");
+        details.append("Prioridade: ").append(taskData.get("priority")).append("\n");
+        
+        @SuppressWarnings("unchecked")
+        Map<String, Object> user = (Map<String, Object>) taskData.get("user");
+        details.append("Utilizador: ").append(user != null ? user.get("displayName") : "N/A").append("\n");
+        
+        @SuppressWarnings("unchecked")
+        Map<String, Object> team = (Map<String, Object>) taskData.get("assignedTeam");
+        details.append("Equipa: ").append(team != null ? team.get("name") : "Individual").append("\n");
+        
+        @SuppressWarnings("unchecked")
+        Map<String, Object> createdBy = (Map<String, Object>) taskData.get("createdBy");
+        details.append("Criado por: ").append(createdBy != null ? createdBy.get("displayName") : "N/A").append("\n");
+        
+        details.append("Data de Criação: ").append(formatDateTime((String) taskData.get("createdAt"))).append("\n");
+        details.append("Data Limite: ").append(formatDateTime((String) taskData.get("dueDate"))).append("\n");
+        details.append("Data de Conclusão: ").append(formatDateTime((String) taskData.get("completedAt"))).append("\n");
+        
+        JTextArea textArea = new JTextArea(details.toString());
+        textArea.setEditable(false);
+        textArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        scrollPane.setPreferredSize(new Dimension(500, 300));
+        
+        JOptionPane.showMessageDialog(this, scrollPane, 
+                                    "Detalhes da Tarefa #" + taskData.get("id"), 
+                                    JOptionPane.INFORMATION_MESSAGE);
+    }
+    
+    /**
+     * Ordena tarefas por coluna
+     */
+    private void sortTasksByColumn(int column) {
+        String[] sortFields = {"id", "title", "description", "status", "priority", 
+                              "user", "team", "createdBy", "createdAt", "dueDate", "completedAt"};
+        
+        if (column < sortFields.length && sortByCombo != null) {
+            sortByCombo.setSelectedItem(sortFields[column]);
+            
+            // Alternar direção da ordenação
+            if (sortDirectionCombo != null) {
+                String currentDirection = (String) sortDirectionCombo.getSelectedItem();
+                sortDirectionCombo.setSelectedItem(currentDirection.equals("asc") ? "desc" : "asc");
+            }
+            
+            applyFilters();
+        }
+    }
+    
+    /**
+     * Página anterior
+     */
+    private void previousPage() {
+        // TODO: Implementar paginação quando necessário
+        JOptionPane.showMessageDialog(this, "Funcionalidade de paginação será implementada em breve", 
+                                    "Info", JOptionPane.INFORMATION_MESSAGE);
+    }
+    
+    /**
+     * Próxima página
+     */
+    private void nextPage() {
+        // TODO: Implementar paginação quando necessário
+        JOptionPane.showMessageDialog(this, "Funcionalidade de paginação será implementada em breve", 
+                                    "Info", JOptionPane.INFORMATION_MESSAGE);
+    }
+    
+    /**
+     * Trunca texto para exibição na tabela
+     */
+    private String truncateText(String text, int maxLength) {
+        if (text == null) return "";
+        if (text.length() <= maxLength) return text;
+        return text.substring(0, maxLength - 3) + "...";
+    }
+    
+    /**
+     * Formata data/hora para exibição
+     */
+    private String formatDateTime(String dateTimeStr) {
+        if (dateTimeStr == null || dateTimeStr.isEmpty()) return "";
+        try {
+            // Assumindo formato ISO: 2023-12-01T10:30:00
+            if (dateTimeStr.contains("T")) {
+                String[] parts = dateTimeStr.split("T");
+                return parts[0] + " " + parts[1].substring(0, 5); // YYYY-MM-DD HH:MM
+            }
+            return dateTimeStr;
+        } catch (Exception e) {
+            return dateTimeStr;
         }
     }
 }

@@ -3,6 +3,7 @@ package com.gestortarefas.view.dashboard;
 import com.gestortarefas.view.dialog.AssignTaskDialog;
 import com.gestortarefas.view.dialogs.TaskCommentsDialog;
 import com.gestortarefas.view.dialogs.TaskAssignmentDialog;
+import com.gestortarefas.gui.Colors;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -144,6 +145,12 @@ public class ManagerDashboardPanel extends DashboardBasePanel {
         
         teamMembersTable = new JTable(teamMembersModel);
         teamMembersTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        teamMembersTable.setRowHeight(32);
+        
+        // Aplicar tema moderno e alinhamento central (exceto nome - coluna 1)
+        Colors.applyModernTable(teamMembersTable);
+        Colors.applyCenterAlignment(teamMembersTable, 1);
+        
         teamMembersTable.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {

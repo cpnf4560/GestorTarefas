@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import javax.swing.SwingUtilities;
 import com.gestortarefas.view.MainWindow;
+import com.gestortarefas.gui.LoginFrame;
 
 /**
  * Classe principal da aplicação Gestor de Tarefas
@@ -38,10 +39,10 @@ public class GestorTarefasApplication {
             System.setProperty("java.awt.headless", "false");
             SwingUtilities.invokeLater(() -> {
                 try {
-                    // Abrir a janela principal que apresenta o LoginDialog
-                    new MainWindow().setVisible(true);
+                    // Abrir a janela de login moderna (LoginFrame); após login ela própria abre a MainWindow
+                    new LoginFrame().setVisible(true);
                     System.out.println("Interface gráfica iniciada com sucesso!");
-                    System.out.println("LoginDialog (via MainWindow) iniciado");
+                    System.out.println("LoginFrame iniciado (abre MainWindow após login)");
                 } catch (Exception e) {
                     e.printStackTrace();
                     System.err.println("Erro ao iniciar interface gráfica: " + e.getMessage());
@@ -76,11 +77,11 @@ public class GestorTarefasApplication {
         // Iniciar a interface gráfica Swing na EDT (Event Dispatch Thread)
         SwingUtilities.invokeLater(() -> {
             try {
-                // Abrir a janela principal que apresenta o LoginDialog
-                new MainWindow().setVisible(true);
+                // Abrir a janela de login moderna (LoginFrame); após login ela própria abre a MainWindow
+                new LoginFrame().setVisible(true);
                 System.out.println("Interface gráfica iniciada com sucesso!");
                 System.out.println("Servidor Spring Boot rodando em: http://localhost:8080");
-                System.out.println("LoginDialog (via MainWindow) iniciado com sucesso!");
+                System.out.println("LoginFrame iniciado (abre MainWindow após login)");
             } catch (Exception e) {
                 e.printStackTrace();
                 System.err.println("Erro ao iniciar interface gráfica: " + e.getMessage());

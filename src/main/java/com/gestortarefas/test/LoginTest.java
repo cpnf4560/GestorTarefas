@@ -1,6 +1,6 @@
 package com.gestortarefas.test;
 
-import com.gestortarefas.view.LoginDialog;
+import com.gestortarefas.gui.LoginFrame;
 import javax.swing.SwingUtilities;
 
 /**
@@ -10,8 +10,8 @@ import javax.swing.SwingUtilities;
 public class LoginTest {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            LoginDialog loginDialog = new LoginDialog(null);
-            loginDialog.setVisible(true);
+            LoginFrame loginFrame = new LoginFrame();
+            loginFrame.setVisible(true);
         });
     }
 }

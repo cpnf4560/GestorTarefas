@@ -315,6 +315,32 @@ public class RestApiClient {
     }
     
     /**
+     * Lista todas as tarefas com filtros
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getAllTasks(Map<String, String> filters) {
+        try {
+            StringBuilder url = new StringBuilder(BASE_URL + "/tasks");
+            
+            if (filters != null && !filters.isEmpty()) {
+                url.append("?");
+                boolean first = true;
+                for (Map.Entry<String, String> entry : filters.entrySet()) {
+                    if (!first) url.append("&");
+                    url.append(entry.getKey()).append("=").append(entry.getValue());
+                    first = false;
+                }
+            }
+            
+            ResponseEntity<?> response = restTemplate.getForEntity(url.toString(), Map.class);
+            return (Map<String, Object>) response.getBody();
+        } catch (Exception e) {
+            System.err.println("Erro ao listar tarefas com filtros: " + e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
      * Obtém tarefa por ID
      */
     @SuppressWarnings("unchecked")
@@ -654,6 +680,41 @@ public class RestApiClient {
         } catch (Exception e) {
             System.err.println("Erro ao atribuir tarefa: " + e.getMessage());
             return Map.of("success", false, "error", e.getMessage());
+        }
+    }
+
+    /**
+     * Elimina utilizador
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> deleteUser(Long userId) {
+        try {
+            String url = BASE_URL + "/users/" + userId;
+            
+            // Configurar headers de autenticação
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBasicAuth("admin", "admin123");
+            HttpEntity<?> entity = new HttpEntity<>(headers);
+            
+            ResponseEntity<?> response = restTemplate.exchange(url, HttpMethod.DELETE, entity, Map.class);
+            
+            Map<String, Object> result = new HashMap<>();
+            if (response.getStatusCode() == HttpStatus.OK || response.getStatusCode() == HttpStatus.NO_CONTENT) {
+                result.put("success", true);
+                result.put("message", "Utilizador eliminado com sucesso");
+                return result;
+            } else {
+                result.put("success", false);
+                result.put("message", "Erro HTTP: " + response.getStatusCode());
+                return result;
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Erro ao eliminar utilizador: " + e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Erro ao eliminar utilizador: " + e.getMessage());
+            return errorResponse;
         }
     }
 }
