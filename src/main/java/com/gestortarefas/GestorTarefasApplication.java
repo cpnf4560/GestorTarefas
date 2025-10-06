@@ -4,14 +4,14 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import javax.swing.SwingUtilities;
-import com.gestortarefas.view.MainWindow;
-import com.gestortarefas.gui.LoginFrame;
+import com.gestortarefas.view.MainCardLayout;
 
 /**
  * Classe principal da aplicação Gestor de Tarefas
  * 
- * Esta aplicação integra Spring Boot como backend com interface Swing
+ * Esta aplicação integra Spring Boot como backend com interface Swing usando CardLayout
  * para criar um sistema completo de gestão de tarefas com autenticação.
+ * Implementa padrão single-window navigation conforme UFCD 5425.
  */
 @SpringBootApplication
 public class GestorTarefasApplication {
@@ -39,10 +39,11 @@ public class GestorTarefasApplication {
             System.setProperty("java.awt.headless", "false");
             SwingUtilities.invokeLater(() -> {
                 try {
-                    // Abrir a janela de login moderna (LoginFrame); após login ela própria abre a MainWindow
-                    new LoginFrame().setVisible(true);
+                    // Abrir a janela principal com CardLayout
+                    MainCardLayout mainCardLayout = new MainCardLayout();
+                    mainCardLayout.setVisible(true);
                     System.out.println("Interface gráfica iniciada com sucesso!");
-                    System.out.println("LoginFrame iniciado (abre MainWindow após login)");
+                    System.out.println("MainCardLayout iniciado (navegação por cards)");
                 } catch (Exception e) {
                     e.printStackTrace();
                     System.err.println("Erro ao iniciar interface gráfica: " + e.getMessage());
@@ -77,11 +78,12 @@ public class GestorTarefasApplication {
         // Iniciar a interface gráfica Swing na EDT (Event Dispatch Thread)
         SwingUtilities.invokeLater(() -> {
             try {
-                // Abrir a janela de login moderna (LoginFrame); após login ela própria abre a MainWindow
-                new LoginFrame().setVisible(true);
+                // Abrir a janela principal com CardLayout
+                MainCardLayout mainCardLayout = new MainCardLayout();
+                mainCardLayout.setVisible(true);
                 System.out.println("Interface gráfica iniciada com sucesso!");
                 System.out.println("Servidor Spring Boot rodando em: http://localhost:8080");
-                System.out.println("LoginFrame iniciado (abre MainWindow após login)");
+                System.out.println("MainCardLayout iniciado (navegação por cards: Login ↔ Dashboard)");
             } catch (Exception e) {
                 e.printStackTrace();
                 System.err.println("Erro ao iniciar interface gráfica: " + e.getMessage());

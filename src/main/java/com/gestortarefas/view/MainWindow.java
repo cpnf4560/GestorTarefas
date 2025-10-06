@@ -5,6 +5,7 @@ import com.gestortarefas.view.dashboard.AdminDashboardPanel;
 import com.gestortarefas.view.dashboard.EmployeeDashboardPanel;
 import com.gestortarefas.view.dashboard.ManagerDashboardPanel;
 import com.gestortarefas.gui.LoginFrame;
+import com.gestortarefas.util.I18nManager;
 
 import javax.swing.*;
 import java.awt.*;
@@ -18,10 +19,17 @@ public class MainWindow extends JFrame {
     
     private LoggedUser currentUser;
     private JPanel contentPanel;
+    private JPanel currentDashboard;
     private JLabel welcomeLabel;
     private JLabel statusLabel;
+    private JLabel titleLabel;
+    private JButton refreshBtn;
+    private JButton profileBtn;
+    private JButton logoutBtn;
+    private I18nManager i18n;
     
     public MainWindow() {
+        this.i18n = I18nManager.getInstance();
         initializeWindow();
         showLoginDialog();
     }
@@ -30,6 +38,7 @@ public class MainWindow extends JFrame {
      * Construtor para quando o utilizador já fez login
      */
     public MainWindow(boolean skipLogin) {
+        this.i18n = I18nManager.getInstance();
         initializeWindow();
         if (!skipLogin) {
             showLoginDialog();
@@ -37,7 +46,7 @@ public class MainWindow extends JFrame {
     }
     
     private void initializeWindow() {
-        setTitle("Sistema de Gestão de Tarefas");
+        setTitle(i18n.getText("title"));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setExtendedState(JFrame.MAXIMIZED_BOTH);
         setMinimumSize(new Dimension(1200, 800));
@@ -78,12 +87,12 @@ public class MainWindow extends JFrame {
         JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         leftPanel.setOpaque(false);
         
-        JLabel titleLabel = new JLabel("🚀 Sistema de Gestão de Tarefas");
+        titleLabel = new JLabel("🚀 " + i18n.getText("title"));
         titleLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 18));
         titleLabel.setForeground(Color.WHITE);
         leftPanel.add(titleLabel);
         
-        welcomeLabel = new JLabel("Por favor, faça login");
+        welcomeLabel = new JLabel(i18n.getText("please_wait"));
         welcomeLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
         welcomeLabel.setForeground(Color.WHITE);
         welcomeLabel.setBorder(BorderFactory.createEmptyBorder(0, 30, 0, 0));
@@ -93,18 +102,32 @@ public class MainWindow extends JFrame {
         JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         rightPanel.setOpaque(false);
         
-        JButton refreshBtn = new JButton("🔄 Atualizar");
-        refreshBtn.setPreferredSize(new Dimension(100, 30));
+        // Botão de idioma PT/EN
+        JButton languageBtn = new JButton("🌐 " + i18n.getCurrentLanguage());
+        languageBtn.setPreferredSize(new Dimension(70, 30));
+        languageBtn.setBackground(new Color(40, 167, 69));
+        languageBtn.setForeground(Color.WHITE);
+        languageBtn.setFocusPainted(false);
+        languageBtn.setBorderPainted(false);
+        languageBtn.addActionListener(e -> {
+            i18n.toggleLanguage();
+            updateLanguage();
+            languageBtn.setText("🌐 " + i18n.getCurrentLanguage());
+        });
+        
+        refreshBtn = new JButton("🔄 " + i18n.getText("refresh"));
+        refreshBtn.setPreferredSize(new Dimension(120, 30));
         refreshBtn.addActionListener(e -> refreshDashboard());
         
-        JButton profileBtn = new JButton("👤 Perfil");
-        profileBtn.setPreferredSize(new Dimension(80, 30));
+        profileBtn = new JButton("👤 " + i18n.getText("user"));
+        profileBtn.setPreferredSize(new Dimension(100, 30));
         profileBtn.addActionListener(e -> showProfile());
         
-        JButton logoutBtn = new JButton("🚪 Sair");
-        logoutBtn.setPreferredSize(new Dimension(70, 30));
+        logoutBtn = new JButton("🚪 " + i18n.getText("logout"));
+        logoutBtn.setPreferredSize(new Dimension(90, 30));
         logoutBtn.addActionListener(e -> logout());
         
+        rightPanel.add(languageBtn);
         rightPanel.add(refreshBtn);
         rightPanel.add(profileBtn);
         rightPanel.add(logoutBtn);
@@ -120,7 +143,7 @@ public class MainWindow extends JFrame {
         statusBar.setBackground(new Color(240, 240, 240));
         statusBar.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
         
-        statusLabel = new JLabel("Sistema iniciado - Aguardando login");
+        statusLabel = new JLabel(i18n.getText("loading"));
         statusLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
         
         JLabel timeLabel = new JLabel();
@@ -164,7 +187,7 @@ public class MainWindow extends JFrame {
     
     private void updateWelcomeMessage() {
         if (currentUser != null) {
-            welcomeLabel.setText("Bem-vindo, " + currentUser.getUsername() + 
+            welcomeLabel.setText(i18n.getText("welcome") + ", " + currentUser.getUsername() + 
                 " (" + currentUser.getRole().getDisplayName() + ")");
         }
     }
@@ -182,25 +205,26 @@ public class MainWindow extends JFrame {
         switch (currentUser.getRole()) {
             case FUNCIONARIO:
                 dashboard = new EmployeeDashboardPanel(currentUser.getId());
-                updateStatus("Dashboard de Funcionário carregado");
+                updateStatus(i18n.getText("dashboard") + " - " + i18n.getText("role"));
                 break;
                 
             case GERENTE:
                 dashboard = new ManagerDashboardPanel(currentUser.getId());
-                updateStatus("Dashboard de Gestor carregado");
+                updateStatus(i18n.getText("dashboard") + " - " + i18n.getText("manager"));
                 break;
                 
             case ADMINISTRADOR:
                 dashboard = new AdminDashboardPanel(currentUser.getId());
-                updateStatus("Dashboard de Administrador carregado");
+                updateStatus(i18n.getText("dashboard") + " - " + i18n.getText("admin"));
                 break;
                 
             default:
-                showErrorMessage("Tipo de utilizador não reconhecido!");
+                showErrorMessage(i18n.getText("error"));
                 return;
         }
         
         if (dashboard != null) {
+            currentDashboard = dashboard;
             contentPanel.add(dashboard, BorderLayout.CENTER);
             contentPanel.revalidate();
             contentPanel.repaint();
@@ -212,9 +236,9 @@ public class MainWindow extends JFrame {
      */
     private void refreshDashboard() {
         if (currentUser != null) {
-            updateStatus("Atualizando dashboard...");
+            updateStatus(i18n.getText("loading") + "...");
             loadUserDashboard();
-            updateStatus("Dashboard atualizado");
+            updateStatus(i18n.getText("dashboard") + " " + i18n.getText("refresh"));
         }
     }
     
@@ -224,7 +248,7 @@ public class MainWindow extends JFrame {
     private void showProfile() {
         if (currentUser == null) return;
         
-        JDialog profileDialog = new JDialog(this, "Perfil do Utilizador", true);
+        JDialog profileDialog = new JDialog(this, i18n.getText("user"), true);
         profileDialog.setSize(400, 300);
         profileDialog.setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
@@ -238,28 +262,28 @@ public class MainWindow extends JFrame {
         profileDialog.add(new JLabel(currentUser.getId().toString()), gbc);
         
         gbc.gridx = 0; gbc.gridy = 1;
-        profileDialog.add(new JLabel("Nome:"), gbc);
+        profileDialog.add(new JLabel(i18n.getText("name") + ":"), gbc);
         gbc.gridx = 1;
         profileDialog.add(new JLabel(currentUser.getUsername()), gbc);
         
         gbc.gridx = 0; gbc.gridy = 2;
-        profileDialog.add(new JLabel("Email:"), gbc);
+        profileDialog.add(new JLabel(i18n.getText("email") + ":"), gbc);
         gbc.gridx = 1;
         profileDialog.add(new JLabel(currentUser.getEmail()), gbc);
         
         gbc.gridx = 0; gbc.gridy = 3;
-        profileDialog.add(new JLabel("Perfil:"), gbc);
+        profileDialog.add(new JLabel(i18n.getText("role") + ":"), gbc);
         gbc.gridx = 1;
         profileDialog.add(new JLabel(currentUser.getRole().getDisplayName()), gbc);
         
         // Botões
         JPanel buttonPanel = new JPanel(new FlowLayout());
-        JButton editBtn = new JButton("Editar Perfil");
-        JButton closeBtn = new JButton("Fechar");
+        JButton editBtn = new JButton(i18n.getText("edit"));
+        JButton closeBtn = new JButton(i18n.getText("cancel"));
         
         editBtn.addActionListener(e -> {
             JOptionPane.showMessageDialog(profileDialog, 
-                "Funcionalidade de edição de perfil em desenvolvimento");
+                i18n.getText("info"));
         });
         
         closeBtn.addActionListener(e -> profileDialog.dispose());
@@ -280,8 +304,8 @@ public class MainWindow extends JFrame {
      */
     private void logout() {
         int result = JOptionPane.showConfirmDialog(this,
-            "Tem certeza que deseja sair do sistema?",
-            "Confirmar Logout",
+            i18n.getText("confirm_exit"),
+            i18n.getText("logout"),
             JOptionPane.YES_NO_OPTION);
         
         if (result == JOptionPane.YES_OPTION) {
@@ -305,8 +329,8 @@ public class MainWindow extends JFrame {
      * Mostra mensagem de erro
      */
     private void showErrorMessage(String message) {
-        JOptionPane.showMessageDialog(this, message, "Erro", JOptionPane.ERROR_MESSAGE);
-        updateStatus("Erro: " + message);
+        JOptionPane.showMessageDialog(this, message, i18n.getText("error"), JOptionPane.ERROR_MESSAGE);
+        updateStatus(i18n.getText("error") + ": " + message);
     }
     
     /**
@@ -314,16 +338,44 @@ public class MainWindow extends JFrame {
      */
     private void onWindowClosing() {
         int result = JOptionPane.showConfirmDialog(this,
-            "Deseja realmente fechar o sistema?",
-            "Confirmar Saída",
+            i18n.getText("confirm_exit"),
+            i18n.getText("exit"),
             JOptionPane.YES_NO_OPTION);
         
         if (result == JOptionPane.YES_OPTION) {
-            updateStatus("Sistema a encerrar...");
+            updateStatus(i18n.getText("processing") + "...");
             System.exit(0);
         } else {
             setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         }
+    }
+    
+    /**
+     * Atualiza todos os textos da UI quando o idioma muda
+     */
+    private void updateLanguage() {
+        setTitle(i18n.getText("title"));
+        titleLabel.setText("🚀 " + i18n.getText("title"));
+        refreshBtn.setText("🔄 " + i18n.getText("refresh"));
+        profileBtn.setText("👤 " + i18n.getText("user"));
+        logoutBtn.setText("🚪 " + i18n.getText("logout"));
+        
+        if (currentUser != null) {
+            updateWelcomeMessage();
+        }
+        
+        // Atualizar cabeçalhos das tabelas do dashboard atual
+        if (currentDashboard instanceof com.gestortarefas.view.dashboard.DashboardBasePanel) {
+            ((com.gestortarefas.view.dashboard.DashboardBasePanel) currentDashboard).updateTableHeaders();
+        }
+        
+        // Recarregar dashboard para atualizar textos internos
+        if (currentUser != null) {
+            loadUserDashboard();
+        }
+        
+        revalidate();
+        repaint();
     }
     
     /**

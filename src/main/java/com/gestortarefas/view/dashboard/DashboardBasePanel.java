@@ -1,6 +1,7 @@
 package com.gestortarefas.view.dashboard;
 
 import com.gestortarefas.util.RestApiClient;
+import com.gestortarefas.util.I18nManager;
 import com.gestortarefas.gui.Colors;
 
 import javax.swing.*;
@@ -14,9 +15,20 @@ import java.util.Map;
  */
 public class DashboardBasePanel extends JPanel {
     
+    /**
+     * Enum para identificar o tipo de coluna
+     */
+    protected enum ColumnType {
+        PENDING,
+        TODAY,
+        OVERDUE,
+        COMPLETED
+    }
+    
     protected RestApiClient apiClient;
     protected Long currentUserId;
     protected Timer refreshTimer;
+    protected I18nManager i18n;
     
     // Painéis das 4 colunas
     protected JPanel pendingPanel;
@@ -46,6 +58,7 @@ public class DashboardBasePanel extends JPanel {
     public DashboardBasePanel(Long userId) {
         this.currentUserId = userId;
         this.apiClient = new RestApiClient();
+        this.i18n = I18nManager.getInstance();
         
         initializeComponents();
         setupLayout();
@@ -69,10 +82,10 @@ public class DashboardBasePanel extends JPanel {
         configureTables();
         
         // Criar painéis das colunas
-        pendingPanel = createColumnPanel("PENDENTES", pendingTable, Color.ORANGE);
-        todayPanel = createColumnPanel("HOJE", todayTable, Color.BLUE);
-        overduePanel = createColumnPanel("ATRASADAS", overdueTable, Color.RED);
-        completedPanel = createColumnPanel("CONCLUÍDAS", completedTable, Color.GREEN);
+        pendingPanel = createColumnPanel(ColumnType.PENDING, pendingTable, Color.ORANGE);
+        todayPanel = createColumnPanel(ColumnType.TODAY, todayTable, Color.BLUE);
+        overduePanel = createColumnPanel(ColumnType.OVERDUE, overdueTable, Color.RED);
+        completedPanel = createColumnPanel(ColumnType.COMPLETED, completedTable, Color.GREEN);
         
         // Criar painel de estatísticas
         createStatsPanel();
@@ -123,13 +136,14 @@ public class DashboardBasePanel extends JPanel {
      */
     protected void initializeColumnPanels() {
         // Recriar painéis das colunas
-        pendingPanel = createColumnPanel("PENDENTES", pendingTable, Color.ORANGE);
-        todayPanel = createColumnPanel("HOJE", todayTable, Color.BLUE);
-        overduePanel = createColumnPanel("ATRASADAS", overdueTable, Color.RED);
-        completedPanel = createColumnPanel("CONCLUÍDAS", completedTable, Color.GREEN);
+        pendingPanel = createColumnPanel(ColumnType.PENDING, pendingTable, Color.ORANGE);
+        todayPanel = createColumnPanel(ColumnType.TODAY, todayTable, Color.BLUE);
+        overduePanel = createColumnPanel(ColumnType.OVERDUE, overdueTable, Color.RED);
+        completedPanel = createColumnPanel(ColumnType.COMPLETED, completedTable, Color.GREEN);
     }
     
-    protected JPanel createColumnPanel(String title, JTable table, Color borderColor) {
+    protected JPanel createColumnPanel(ColumnType columnType, JTable table, Color borderColor) {
+        String title = getTitleForColumnType(columnType);
         JPanel panel = new JPanel(new BorderLayout());
         TitledBorder border = BorderFactory.createTitledBorder(title);
         border.setTitleColor(borderColor);
@@ -162,16 +176,26 @@ public class DashboardBasePanel extends JPanel {
         legendLabel.setHorizontalAlignment(SwingConstants.CENTER);
         bottomPanel.add(legendLabel, BorderLayout.NORTH);
         
-        // Botões de ação (se necessário)
+        // Botões de ação baseados no tipo de coluna
         JPanel buttonPanel = new JPanel(new FlowLayout());
-        if (title.equals("PENDENTES")) {
-            JButton startButton = new JButton("Iniciar");
-            startButton.addActionListener(e -> startTask());
-            buttonPanel.add(startButton);
-        } else if (title.equals("HOJE") || title.equals("ATRASADAS")) {
-            JButton completeButton = new JButton("Concluir");
-            completeButton.addActionListener(e -> completeTask());
-            buttonPanel.add(completeButton);
+        
+        switch (columnType) {
+            case PENDING:
+                JButton startButton = new JButton(i18n.getText("start"));
+                startButton.addActionListener(e -> startTask());
+                buttonPanel.add(startButton);
+                break;
+                
+            case TODAY:
+            case OVERDUE:
+                JButton completeButton = new JButton(i18n.getText("complete"));
+                completeButton.addActionListener(e -> completeTask());
+                buttonPanel.add(completeButton);
+                break;
+                
+            case COMPLETED:
+                // Nenhum botão para tarefas concluídas
+                break;
         }
         
         if (buttonPanel.getComponentCount() > 0) {
@@ -183,15 +207,33 @@ public class DashboardBasePanel extends JPanel {
         return panel;
     }
     
+    /**
+     * Obtém o título traduzido para o tipo de coluna
+     */
+    private String getTitleForColumnType(ColumnType type) {
+        switch (type) {
+            case PENDING:
+                return i18n.getText("pending").toUpperCase();
+            case TODAY:
+                return i18n.getText("today").toUpperCase();
+            case OVERDUE:
+                return i18n.getText("overdue").toUpperCase();
+            case COMPLETED:
+                return i18n.getText("completed").toUpperCase();
+            default:
+                return "";
+        }
+    }
+    
     private void createStatsPanel() {
         statsPanel = new JPanel(new GridLayout(1, 5, 10, 5));
-        statsPanel.setBorder(BorderFactory.createTitledBorder("Estatísticas"));
+        statsPanel.setBorder(BorderFactory.createTitledBorder(i18n.getText("statistics")));
         
-        totalTasksLabel = new JLabel("Total: 0", SwingConstants.CENTER);
-        pendingCountLabel = new JLabel("Pendentes: 0", SwingConstants.CENTER);
-        todayCountLabel = new JLabel("Hoje: 0", SwingConstants.CENTER);
-        overdueCountLabel = new JLabel("Atrasadas: 0", SwingConstants.CENTER);
-        completedCountLabel = new JLabel("Concluídas: 0", SwingConstants.CENTER);
+        totalTasksLabel = new JLabel(i18n.getText("total") + ": 0", SwingConstants.CENTER);
+        pendingCountLabel = new JLabel(i18n.getText("pending") + ": 0", SwingConstants.CENTER);
+        todayCountLabel = new JLabel(i18n.getText("today") + ": 0", SwingConstants.CENTER);
+        overdueCountLabel = new JLabel(i18n.getText("overdue") + ": 0", SwingConstants.CENTER);
+        completedCountLabel = new JLabel(i18n.getText("completed") + ": 0", SwingConstants.CENTER);
         
         // Cores dos labels
         totalTasksLabel.setOpaque(true);
@@ -231,7 +273,7 @@ public class DashboardBasePanel extends JPanel {
         
         // Painel inferior com botão de refresh
         JPanel bottomPanel = new JPanel(new FlowLayout());
-        JButton refreshButton = new JButton("Atualizar");
+        JButton refreshButton = new JButton(i18n.getText("refresh"));
         refreshButton.addActionListener(e -> refreshDashboard());
         bottomPanel.add(refreshButton);
         add(bottomPanel, BorderLayout.SOUTH);
@@ -248,6 +290,18 @@ public class DashboardBasePanel extends JPanel {
      */
     protected void refreshDashboard() {
         // Implementado pelas classes específicas
+    }
+    
+    /**
+     * Atualiza os cabeçalhos das tabelas quando o idioma muda
+     */
+    public void updateTableHeaders() {
+        SwingUtilities.invokeLater(() -> {
+            pendingTableModel.updateHeaders();
+            todayTableModel.updateHeaders();
+            overdueTableModel.updateHeaders();
+            completedTableModel.updateHeaders();
+        });
     }
     
     /**
@@ -689,7 +743,17 @@ public class DashboardBasePanel extends JPanel {
      */
     protected static class TaskTableModel extends javax.swing.table.AbstractTableModel {
         private java.util.List<TaskItem> tasks = new java.util.ArrayList<>();
-        private final String[] columnNames = {"Prioridade", "Tarefa", "Data Limite", "Atribuído a:", "Status"};
+        private I18nManager i18n = I18nManager.getInstance();
+        
+        private String[] getColumnNames() {
+            return new String[] {
+                i18n.getText("table_priority"),
+                i18n.getText("table_task"),
+                i18n.getText("table_due_date"),
+                i18n.getText("table_assigned_to"),
+                i18n.getText("table_status")
+            };
+        }
         
         @Override
         public int getRowCount() {
@@ -698,12 +762,16 @@ public class DashboardBasePanel extends JPanel {
         
         @Override
         public int getColumnCount() {
-            return columnNames.length;
+            return 5;
         }
         
         @Override
         public String getColumnName(int column) {
-            return columnNames[column];
+            return getColumnNames()[column];
+        }
+        
+        public void updateHeaders() {
+            fireTableStructureChanged();
         }
         
         @Override

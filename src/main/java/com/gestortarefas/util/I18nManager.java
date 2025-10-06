@@ -90,6 +90,11 @@ public class I18nManager {
         put("recent_activities", "Atividades Recentes");
         put("task_overview", "Visão Geral das Tarefas");
         put("team_overview", "Visão Geral das Equipas");
+        put("start", "Iniciar");
+        put("complete", "Concluir");
+        put("today", "Hoje");
+        put("overdue", "Atrasadas");
+        put("total", "Total");
         
         // Relatórios
         put("generate_report", "Gerar Relatório");
@@ -110,6 +115,31 @@ public class I18nManager {
         put("loading", "A carregar...");
         put("processing", "A processar...");
         put("please_wait", "Por favor aguarde...");
+        
+        // Cabeçalhos de Tabelas
+        put("table_priority", "Prioridade");
+        put("table_task", "Tarefa");
+        put("table_due_date", "Data Limite");
+        put("table_assigned_to", "Atribuído a:");
+        put("table_status", "Status");
+        put("table_id", "ID");
+        put("table_title", "Título");
+        put("table_description", "Descrição");
+        put("table_team", "Equipa");
+        put("table_created_by", "Criado Por");
+        put("table_creation_date", "Data Criação");
+        put("table_completion_date", "Data Conclusão");
+        put("table_actions", "Ações");
+        put("table_username", "Username");
+        put("table_full_name", "Nome Completo");
+        put("table_profile", "Perfil");
+        put("table_active", "Ativo");
+        put("table_manager", "Gestor");
+        put("table_members_count", "Nº Membros");
+        put("table_active_tasks", "Tarefas Ativas");
+        put("table_email", "Email");
+        put("table_completed_tasks", "Tarefas Concluídas");
+        put("table_completion_rate", "Taxa Conclusão");
     }};
     
     // Textos em Inglês
@@ -191,6 +221,11 @@ public class I18nManager {
         put("recent_activities", "Recent Activities");
         put("task_overview", "Task Overview");
         put("team_overview", "Team Overview");
+        put("start", "Start");
+        put("complete", "Complete");
+        put("today", "Today");
+        put("overdue", "Overdue");
+        put("total", "Total");
         
         // Reports
         put("generate_report", "Generate Report");
@@ -211,6 +246,31 @@ public class I18nManager {
         put("loading", "Loading...");
         put("processing", "Processing...");
         put("please_wait", "Please wait...");
+        
+        // Table Headers
+        put("table_priority", "Priority");
+        put("table_task", "Task");
+        put("table_due_date", "Due Date");
+        put("table_assigned_to", "Assigned to:");
+        put("table_status", "Status");
+        put("table_id", "ID");
+        put("table_title", "Title");
+        put("table_description", "Description");
+        put("table_team", "Team");
+        put("table_created_by", "Created By");
+        put("table_creation_date", "Creation Date");
+        put("table_completion_date", "Completion Date");
+        put("table_actions", "Actions");
+        put("table_username", "Username");
+        put("table_full_name", "Full Name");
+        put("table_profile", "Profile");
+        put("table_active", "Active");
+        put("table_manager", "Manager");
+        put("table_members_count", "Members Count");
+        put("table_active_tasks", "Active Tasks");
+        put("table_email", "Email");
+        put("table_completed_tasks", "Completed Tasks");
+        put("table_completion_rate", "Completion Rate");
     }};
     
     private I18nManager() {}
