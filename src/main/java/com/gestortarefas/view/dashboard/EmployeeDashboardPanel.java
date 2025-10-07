@@ -225,14 +225,16 @@ public class EmployeeDashboardPanel extends DashboardBasePanel {
     
     /**
      * Sobrescrever método para mostrar detalhes da tarefa com opções para funcionário
+     * Funcionários apenas podem ver comentários e alterar o estado da tarefa
      */
     @Override
     protected void showTaskDetails(TaskItem task) {
-        // Criar diálogo personalizado para funcionário com opção de comentários
-        String[] options = {"💬 Ver Comentários", "📋 Detalhes", "Fechar"};
+        // Criar diálogo personalizado para funcionário - apenas ver comentários e alterar estado
+        String[] options = {"� Alterar Estado", "�💬 Ver Comentários", "📋 Detalhes", "Fechar"};
         
         int choice = JOptionPane.showOptionDialog(this, 
-            String.format("Tarefa: %s\n\nEscolha uma ação:", task.getTitle()),
+            String.format("Tarefa: %s\nEstado: %s\nPrioridade: %s\n\nEscolha uma ação:", 
+                         task.getTitle(), task.getStatus(), task.getPriority()),
             "Ver Tarefa #" + task.getId(),
             JOptionPane.DEFAULT_OPTION,
             JOptionPane.QUESTION_MESSAGE,
@@ -241,14 +243,76 @@ public class EmployeeDashboardPanel extends DashboardBasePanel {
             options[0]);
         
         switch (choice) {
-            case 0: // Ver Comentários
+            case 0: // Alterar Estado
+                showTaskStatusChangeDialog(task);
+                break;
+            case 1: // Ver Comentários
                 showTaskComments(task);
                 break;
-            case 1: // Detalhes básicos
-                super.showTaskDetails(task);
+            case 2: // Detalhes básicos
+                showTaskDetailsInfo(task);
                 break;
-            // Caso 2 ou qualquer outro: Fechar (não faz nada)
+            // Caso 3 ou qualquer outro: Fechar (não faz nada)
         }
+    }
+    
+    /**
+     * Mostra diálogo para mudança de estado da tarefa
+     */
+    protected void showTaskStatusChangeDialog(TaskItem task) {
+        try {
+            if (apiClient != null && currentUserId != null) {
+                Window parentWindow = SwingUtilities.getWindowAncestor(this);
+                com.gestortarefas.view.dialogs.TaskStatusChangeDialog statusDialog = 
+                    new com.gestortarefas.view.dialogs.TaskStatusChangeDialog(
+                        parentWindow,
+                        task.getId(),
+                        task.getTitle(),
+                        task.getStatus(),
+                        currentUserId,
+                        apiClient
+                    );
+                statusDialog.setVisible(true);
+                
+                // Se o estado foi alterado, recarregar dashboard
+                if (statusDialog.isStatusChanged()) {
+                    refreshDashboard();
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                    "Não foi possível abrir diálogo de alteração de estado.\nVerifique a ligação à API.", 
+                    "Erro", 
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, 
+                "Erro ao abrir diálogo de alteração de estado: " + e.getMessage(), 
+                "Erro", 
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Mostra informações detalhadas da tarefa
+     */
+    protected void showTaskDetailsInfo(TaskItem task) {
+        String assignmentInfo = task.isAssignedToTeam() ? 
+            "Equipa: " + task.getAssignedTeamName() : 
+            "Utilizador: " + task.getUsername();
+            
+        String details = String.format(
+            "ID: %d%nTítulo: %s%nDescrição: %s%nStatus: %s%nPrioridade: %s%n%s%nAtrasada: %s",
+            task.getId(),
+            task.getTitle(),
+            task.getDescription(),
+            task.getStatus(),
+            task.getPriority(),
+            assignmentInfo,
+            task.isOverdue() ? "Sim" : "Não"
+        );
+        
+        JOptionPane.showMessageDialog(this, details, "Detalhes da Tarefa", JOptionPane.INFORMATION_MESSAGE);
     }
     
     /**

@@ -51,11 +51,15 @@ public class DashboardController {
 
             Map<String, Object> dashboard = new HashMap<>();
             
-            // 4 colunas do dashboard
-            dashboard.put("pending", taskService.getPendingTasksForUser(user));
-            dashboard.put("today", taskService.getTodayTasksForUser(user));
-            dashboard.put("overdue", taskService.getOverdueTasksForUser(user));
-            dashboard.put("completed", taskService.getCompletedTasksForUser(user));
+            // 4 colunas do dashboard (com contagem de comentários não lidos)
+            dashboard.put("pending", enrichTasksWithUnreadComments(
+                taskService.getPendingTasksForUser(user), userId));
+            dashboard.put("today", enrichTasksWithUnreadComments(
+                taskService.getTodayTasksForUser(user), userId));
+            dashboard.put("overdue", enrichTasksWithUnreadComments(
+                taskService.getOverdueTasksForUser(user), userId));
+            dashboard.put("completed", enrichTasksWithUnreadComments(
+                taskService.getCompletedTasksForUser(user), userId));
             
             // Estatísticas do utilizador
             Map<String, Object> stats = new HashMap<>();
@@ -113,10 +117,14 @@ public class DashboardController {
                 tasksByStatus.computeIfAbsent("completed", k -> new java.util.ArrayList<>()).addAll(completed);
             }
             
-            dashboard.put("pending", tasksByStatus.getOrDefault("pending", new java.util.ArrayList<>()));
-            dashboard.put("today", tasksByStatus.getOrDefault("today", new java.util.ArrayList<>()));
-            dashboard.put("overdue", tasksByStatus.getOrDefault("overdue", new java.util.ArrayList<>()));
-            dashboard.put("completed", tasksByStatus.getOrDefault("completed", new java.util.ArrayList<>()));
+            dashboard.put("pending", enrichTasksWithUnreadComments(
+                tasksByStatus.getOrDefault("pending", new java.util.ArrayList<>()), userId));
+            dashboard.put("today", enrichTasksWithUnreadComments(
+                tasksByStatus.getOrDefault("today", new java.util.ArrayList<>()), userId));
+            dashboard.put("overdue", enrichTasksWithUnreadComments(
+                tasksByStatus.getOrDefault("overdue", new java.util.ArrayList<>()), userId));
+            dashboard.put("completed", enrichTasksWithUnreadComments(
+                tasksByStatus.getOrDefault("completed", new java.util.ArrayList<>()), userId));
             
             // Estatísticas por equipa
             Map<String, Object> teamStats = new HashMap<>();

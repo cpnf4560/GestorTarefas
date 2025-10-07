@@ -745,7 +745,8 @@ public class RestApiClient {
      */
     public boolean archiveTask(Long taskId, Long userId) {
         try {
-            String url = BASE_URL + "/tasks/" + taskId + "/archive";
+            // Adicionar userId como query parameter
+            String url = BASE_URL + "/tasks/" + taskId + "/archive?userId=" + userId;
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             
@@ -756,6 +757,7 @@ public class RestApiClient {
             return response.getStatusCode().is2xxSuccessful();
         } catch (Exception e) {
             System.err.println("Erro ao arquivar tarefa: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }

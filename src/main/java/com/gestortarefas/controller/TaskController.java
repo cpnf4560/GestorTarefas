@@ -1218,12 +1218,39 @@ public class TaskController {
      * Arquiva uma tarefa concluída.
      * Move a tarefa para o arquivo, removendo-a da vista principal.
      * 
+     * APENAS ADMINISTRADORES podem arquivar tarefas.
+     * 
      * @param id ID da tarefa a ser arquivada
+     * @param userId ID do utilizador que está a executar a operação (obrigatório)
      * @return ResponseEntity com o resultado da operação
      */
     @PostMapping("/{id}/archive")
-    public ResponseEntity<?> archiveTask(@PathVariable Long id) {
+    public ResponseEntity<?> archiveTask(@PathVariable Long id, @RequestParam(required = false) Long userId) {
         try {
+            // Verificar se userId foi fornecido
+            if (userId == null) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("error", "ID do utilizador é obrigatório");
+                return ResponseEntity.badRequest().body(error);
+            }
+            
+            // Verificar se o utilizador existe e tem perfil ADMINISTRADOR
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (!userOpt.isPresent()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("error", "Utilizador não encontrado");
+                return ResponseEntity.status(404).body(error);
+            }
+            
+            User user = userOpt.get();
+            if (!user.getRole().isAdmin()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("error", "Apenas administradores podem arquivar tarefas");
+                error.put("userRole", user.getRole().getDisplayName());
+                return ResponseEntity.status(403).body(error); // 403 Forbidden
+            }
+            
+            // Verificar se a tarefa existe
             Optional<Task> taskOpt = taskRepository.findById(id);
             if (!taskOpt.isPresent()) {
                 return ResponseEntity.notFound().build();
