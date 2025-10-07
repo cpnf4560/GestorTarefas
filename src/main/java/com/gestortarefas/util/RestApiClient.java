@@ -691,26 +691,45 @@ public class RestApiClient {
         try {
             String url = BASE_URL + "/users/" + userId;
             
-            // Configurar headers de autenticação
-            HttpHeaders headers = new HttpHeaders();
-            headers.setBasicAuth("admin", "admin123");
-            HttpEntity<?> entity = new HttpEntity<>(headers);
+            ResponseEntity<Map> response = restTemplate.exchange(
+                url, 
+                HttpMethod.DELETE, 
+                null, 
+                Map.class
+            );
             
-            ResponseEntity<?> response = restTemplate.exchange(url, HttpMethod.DELETE, entity, Map.class);
+            // Se a resposta tem corpo, retorná-lo diretamente
+            if (response.getBody() != null) {
+                return (Map<String, Object>) response.getBody();
+            }
             
+            // Se não tem corpo mas foi bem-sucedido, criar resposta de sucesso
             Map<String, Object> result = new HashMap<>();
-            if (response.getStatusCode() == HttpStatus.OK || response.getStatusCode() == HttpStatus.NO_CONTENT) {
+            if (response.getStatusCode().is2xxSuccessful()) {
                 result.put("success", true);
                 result.put("message", "Utilizador eliminado com sucesso");
-                return result;
             } else {
                 result.put("success", false);
                 result.put("message", "Erro HTTP: " + response.getStatusCode());
-                return result;
             }
+            return result;
             
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            System.err.println("Erro HTTP ao eliminar utilizador: " + e.getStatusCode() + " - " + e.getResponseBodyAsString());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            
+            // Tentar extrair mensagem do corpo da resposta
+            try {
+                Map<String, Object> errorBody = objectMapper.readValue(e.getResponseBodyAsString(), Map.class);
+                errorResponse.put("message", errorBody.getOrDefault("message", e.getMessage()));
+            } catch (Exception parseEx) {
+                errorResponse.put("message", "Erro ao eliminar utilizador: " + e.getMessage());
+            }
+            return errorResponse;
         } catch (Exception e) {
             System.err.println("Erro ao eliminar utilizador: " + e.getMessage());
+            e.printStackTrace();
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("message", "Erro ao eliminar utilizador: " + e.getMessage());
