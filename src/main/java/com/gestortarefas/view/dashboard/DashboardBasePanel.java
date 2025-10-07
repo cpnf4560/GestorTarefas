@@ -757,6 +757,7 @@ public class DashboardBasePanel extends JPanel {
                 i18n.getText("table_task"),
                 i18n.getText("table_due_date"),
                 i18n.getText("table_assigned_to"),
+                i18n.getText("table_team"),
                 i18n.getText("table_status")
             };
         }
@@ -768,7 +769,7 @@ public class DashboardBasePanel extends JPanel {
         
         @Override
         public int getColumnCount() {
-            return 5;
+            return 6;
         }
         
         @Override
@@ -790,7 +791,8 @@ public class DashboardBasePanel extends JPanel {
                 case 1: return task.getTitle();
                 case 2: return formatDueDate(task.getDueDate());
                 case 3: return getAssignmentInfo(task);
-                case 4: return getStatusText(task.getStatus());
+                case 4: return getTeamInfo(task);
+                case 5: return getStatusText(task.getStatus());
                 default: return "";
             }
         }
@@ -827,12 +829,18 @@ public class DashboardBasePanel extends JPanel {
             String username = task.getUsername();
             if (username != null && !username.isEmpty() && !username.equalsIgnoreCase("null")) {
                 return username;
-            } else if (task.isAssignedToTeam()) {
-                String teamName = task.getAssignedTeamName();
-                return teamName != null ? teamName : "Equipa";
             } else {
                 return "Não atribuído";
             }
+        }
+        
+        private String getTeamInfo(TaskItem task) {
+            // Mostrar nome da equipa se tarefa for de equipa
+            if (task.isAssignedToTeam()) {
+                String teamName = task.getAssignedTeamName();
+                return teamName != null ? teamName : "-";
+            }
+            return "-";
         }
         
         private String getStatusText(String status) {
@@ -896,7 +904,8 @@ public class DashboardBasePanel extends JPanel {
                     case 1: setHorizontalAlignment(SwingConstants.LEFT); break;   // Tarefa
                     case 2: setHorizontalAlignment(SwingConstants.CENTER); break; // Data
                     case 3: setHorizontalAlignment(SwingConstants.LEFT); break;   // Atribuído a
-                    case 4: setHorizontalAlignment(SwingConstants.CENTER); break; // Status
+                    case 4: setHorizontalAlignment(SwingConstants.LEFT); break;   // Equipa
+                    case 5: setHorizontalAlignment(SwingConstants.CENTER); break; // Status
                 }
             }
             
