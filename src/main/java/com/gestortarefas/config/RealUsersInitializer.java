@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -34,6 +35,7 @@ public class RealUsersInitializer {
     private PasswordEncoder passwordEncoder;
 
     @Bean
+    @Transactional
     CommandLineRunner initCompleteData() {
         return args -> {
             // PASSO 1: Criar utilizadores

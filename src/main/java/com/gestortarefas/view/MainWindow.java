@@ -55,6 +55,7 @@ public class MainWindow extends JFrame {
         setLayout(new BorderLayout());
         
         // Barra superior
+        createTopBar();
         add(createTopBar(), BorderLayout.NORTH);
         
         // Painel de conteúdo principal
@@ -62,6 +63,7 @@ public class MainWindow extends JFrame {
         add(contentPanel, BorderLayout.CENTER);
         
         // Barra de status
+        createStatusBar();
         add(createStatusBar(), BorderLayout.SOUTH);
         
         // Configurar comportamento de fechamento
