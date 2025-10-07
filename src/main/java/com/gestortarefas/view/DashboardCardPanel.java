@@ -49,8 +49,10 @@ public class DashboardCardPanel extends JPanel {
      * Carrega o dashboard apropriado baseado no perfil do usuário
      */
     private void loadDashboard() {
-        // Remover dashboard anterior se existir
-        removeAll();
+        // Remover dashboard anterior se existir (mas manter a barra superior)
+        if (currentDashboard != null) {
+            remove(currentDashboard);
+        }
         
         if (currentUser == null) {
             return;
@@ -68,7 +70,7 @@ public class DashboardCardPanel extends JPanel {
             currentDashboard = new EmployeeDashboardPanel(userId);
         }
         
-        // Adicionar dashboard ao painel
+        // Adicionar dashboard ao painel (a barra superior já está no NORTH)
         add(currentDashboard, BorderLayout.CENTER);
         
         // Forçar atualização visual
