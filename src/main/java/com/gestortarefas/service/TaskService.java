@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Arrays;
 
 /**
  * Serviço de negócio para gestão de tarefas.
@@ -98,6 +99,13 @@ public class TaskService {
      */
     public List<Task> findTasksByStatus(TaskStatus status) {
         return taskRepository.findByStatus(status);
+    }
+
+    /**
+     * Lista tarefas pendentes e em andamento (para dashboard admin)
+     */
+    public List<Task> findPendingAndInProgressTasks() {
+        return taskRepository.findByStatusIn(Arrays.asList(TaskStatus.PENDENTE, TaskStatus.EM_ANDAMENTO));
     }
 
     /**

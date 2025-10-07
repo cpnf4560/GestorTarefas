@@ -168,7 +168,7 @@ public class DashboardController {
             
             // Tarefas globais - 4 colunas (com contagem de comentários não lidos)
             dashboard.put("pending", enrichTasksWithUnreadComments(
-                taskService.findTasksByStatus(Task.TaskStatus.PENDENTE), userId));
+                taskService.findPendingAndInProgressTasks(), userId));
             dashboard.put("today", enrichTasksWithUnreadComments(
                 taskService.findTasksDueSoon(), userId));
             dashboard.put("overdue", enrichTasksWithUnreadComments(

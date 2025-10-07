@@ -1692,7 +1692,15 @@ public class AdminDashboardPanel extends DashboardBasePanel {
         if (priorityFilter != null && !priorityFilter.getSelectedItem().equals("Todas")) {
             filters.put("priority", (String) priorityFilter.getSelectedItem());
         }
-        
+
+        if (userFilter != null && !userFilter.getSelectedItem().equals("Todos")) {
+            filters.put("user", (String) userFilter.getSelectedItem());
+        }
+
+        if (teamFilter != null && !teamFilter.getSelectedItem().equals("Todas")) {
+            filters.put("team", (String) teamFilter.getSelectedItem());
+        }
+
         if (sortByCombo != null) {
             filters.put("sortBy", (String) sortByCombo.getSelectedItem());
         }

@@ -35,6 +35,11 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findByStatus(TaskStatus status);
 
     /**
+     * Busca tarefas por múltiplos status
+     */
+    List<Task> findByStatusIn(List<TaskStatus> statuses);
+
+    /**
      * Busca tarefas de um utilizador por status
      */
     List<Task> findByUserAndStatus(User user, TaskStatus status);

@@ -185,7 +185,9 @@ public class TaskController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String priority,
             @RequestParam(required = false) Long assignedUserId,
+            @RequestParam(required = false) String userName,
             @RequestParam(required = false) Long teamId,
+            @RequestParam(required = false) String teamName,
             @RequestParam(required = false) String search,
             @RequestParam(required = false, defaultValue = "createdAt") String sortBy,
             @RequestParam(required = false, defaultValue = "desc") String sortDirection,
@@ -230,11 +232,19 @@ public class TaskController {
                         if (task.getUser() == null || !task.getUser().getId().equals(assignedUserId)) {
                             return false;
                         }
+                    } else if (userName != null && !userName.trim().isEmpty()) {
+                        if (task.getUser() == null || !task.getUser().getUsername().equals(userName)) {
+                            return false;
+                        }
                     }
                     
                     // Filtro por equipa
                     if (teamId != null) {
                         if (task.getAssignedTeam() == null || !task.getAssignedTeam().getId().equals(teamId)) {
+                            return false;
+                        }
+                    } else if (teamName != null && !teamName.trim().isEmpty()) {
+                        if (task.getAssignedTeam() == null || !task.getAssignedTeam().getName().equals(teamName)) {
                             return false;
                         }
                     }
