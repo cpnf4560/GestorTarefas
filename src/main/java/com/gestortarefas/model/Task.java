@@ -65,6 +65,10 @@ public class Task {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
+    // Campo para controlo de arquivo de tarefas
+    @Column(name = "archived", nullable = false)
+    private Boolean archived = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"tasks", "teams", "managedTeams", "profile"})
@@ -256,6 +260,14 @@ public class Task {
 
     public void setCompletedAt(LocalDateTime completedAt) {
         this.completedAt = completedAt;
+    }
+
+    public Boolean getArchived() {
+        return archived;
+    }
+
+    public void setArchived(Boolean archived) {
+        this.archived = archived;
     }
 
     public User getUser() {
@@ -457,6 +469,38 @@ public class Task {
 
     public String getPriorityDisplayName() {
         return priority.getDisplayName();
+    }
+
+    /**
+     * Retorna o username do utilizador atribuído à tarefa (para serialização JSON)
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("username")
+    public String getUsername() {
+        return user != null ? user.getUsername() : null;
+    }
+
+    /**
+     * Retorna o nome completo do utilizador atribuído à tarefa (para serialização JSON)
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("userFullName")
+    public String getUserFullName() {
+        return user != null ? user.getFullName() : null;
+    }
+
+    /**
+     * Retorna o nome da equipa atribuída (para serialização JSON)
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("assignedTeamName")
+    public String getAssignedTeamName() {
+        return assignedTeam != null ? assignedTeam.getName() : null;
+    }
+
+    /**
+     * Retorna o ID da equipa atribuída (para serialização JSON)
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("assignedTeamId")
+    public Long getAssignedTeamId() {
+        return assignedTeam != null ? assignedTeam.getId() : null;
     }
 
     @Override

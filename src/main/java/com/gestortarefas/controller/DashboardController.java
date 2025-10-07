@@ -3,6 +3,7 @@ package com.gestortarefas.controller;
 import com.gestortarefas.model.Task;
 import com.gestortarefas.model.Team;
 import com.gestortarefas.model.User;
+import com.gestortarefas.repository.TaskCommentReadRepository;
 import com.gestortarefas.service.TaskService;
 import com.gestortarefas.service.TeamService;
 import com.gestortarefas.service.UserService;
@@ -31,6 +32,9 @@ public class DashboardController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private TaskCommentReadRepository taskCommentReadRepository;
 
     /**
      * Dashboard do Funcionário - 4 colunas de tarefas
@@ -162,12 +166,15 @@ public class DashboardController {
             List<User> allUsers = userService.findAllActiveUsers();
             dashboard.put("allUsers", allUsers);
             
-            // Tarefas globais - 4 colunas
-            dashboard.put("pending", taskService.findTasksByStatus(Task.TaskStatus.PENDENTE));
-            // Para tarefas de hoje, usar um método genérico
-            dashboard.put("today", taskService.findTasksDueSoon());
-            dashboard.put("overdue", taskService.findOverdueTasks());
-            dashboard.put("completed", taskService.findCompletedTasksLast3Days());
+            // Tarefas globais - 4 colunas (com contagem de comentários não lidos)
+            dashboard.put("pending", enrichTasksWithUnreadComments(
+                taskService.findTasksByStatus(Task.TaskStatus.PENDENTE), userId));
+            dashboard.put("today", enrichTasksWithUnreadComments(
+                taskService.findTasksDueSoon(), userId));
+            dashboard.put("overdue", enrichTasksWithUnreadComments(
+                taskService.findOverdueTasks(), userId));
+            dashboard.put("completed", enrichTasksWithUnreadComments(
+                taskService.findCompletedTasksLast3Days(), userId));
             
             // Estatísticas globais
             Map<String, Object> globalStats = taskService.getOverallTaskStats();
@@ -232,5 +239,116 @@ public class DashboardController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    /**
+     * Endpoint para obter contagem de comentários não lidos por tarefa para um usuário
+     */
+    @GetMapping("/unread-comments/{userId}")
+    public ResponseEntity<?> getUnreadCommentsCount(@PathVariable Long userId) {
+        try {
+            User user = userService.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Utilizador não encontrado"));
+
+            // Obter todas as tarefas que o usuário pode ver (suas próprias tarefas + tarefas da sua equipa)
+            List<Task> userTasks = taskService.findTasksByUser(user);
+            List<Long> taskIds = userTasks.stream().map(Task::getId).collect(java.util.stream.Collectors.toList());
+            
+            List<Object[]> tasksWithUnreadComments = taskCommentReadRepository.countUnreadCommentsByTasksAndUser(
+                taskIds, userId);
+            
+            Map<String, Object> response = new HashMap<>();
+            Map<Long, Long> unreadCounts = new HashMap<>();
+            
+            for (Object[] result : tasksWithUnreadComments) {
+                Long taskId = (Long) result[0];
+                Long unreadCount = (Long) result[1];
+                unreadCounts.put(taskId, unreadCount);
+            }
+            
+            response.put("unreadCounts", unreadCounts);
+            response.put("totalUnread", unreadCounts.values().stream().mapToLong(Long::longValue).sum());
+            
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Marcar comentários de uma tarefa como lidos para um usuário
+     */
+    @PostMapping("/mark-comments-read/{taskId}/{userId}")
+    public ResponseEntity<?> markCommentsAsRead(@PathVariable Long taskId, @PathVariable Long userId) {
+        try {
+            User user = userService.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Utilizador não encontrado"));
+                
+            Task task = taskService.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("Tarefa não encontrada"));
+
+            // Buscar ou criar registro de leitura
+            var readRecord = taskCommentReadRepository.findByTaskIdAndUserId(taskId, userId)
+                .orElse(new com.gestortarefas.model.TaskCommentRead(task, user));
+            
+            readRecord.markAsRead();
+            taskCommentReadRepository.save(readRecord);
+            
+            return ResponseEntity.ok(Map.of("success", true, "message", "Comentários marcados como lidos"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Método helper para enriquecer lista de tarefas com contagem de comentários não lidos
+     */
+    private List<Map<String, Object>> enrichTasksWithUnreadComments(List<Task> tasks, Long userId) {
+        return tasks.stream().map(task -> {
+            Map<String, Object> taskMap = new HashMap<>();
+            taskMap.put("id", task.getId());
+            taskMap.put("title", task.getTitle());
+            taskMap.put("description", task.getDescription());
+            taskMap.put("status", task.getStatus().name());
+            taskMap.put("priority", task.getPriority().name());
+            taskMap.put("dueDate", task.getDueDate());
+            taskMap.put("createdAt", task.getCreatedAt());
+            taskMap.put("completedAt", task.getCompletedAt());
+            taskMap.put("isOverdue", task.isOverdue());
+            taskMap.put("archived", task.getArchived());
+            
+            // Username e team
+            taskMap.put("username", task.getUsername());
+            taskMap.put("userFullName", task.getUserFullName());
+            taskMap.put("assignedTeamId", task.getAssignedTeamId());
+            taskMap.put("assignedTeamName", task.getAssignedTeamName());
+            
+            // Contar comentários não lidos
+            long unreadComments = taskCommentReadRepository.countUnreadCommentsByTaskAndUser(task.getId(), userId);
+            taskMap.put("unreadComments", unreadComments);
+            
+            // Informação completa do utilizador
+            if (task.getUser() != null) {
+                Map<String, Object> userInfo = new HashMap<>();
+                userInfo.put("id", task.getUser().getId());
+                userInfo.put("username", task.getUser().getUsername());
+                userInfo.put("fullName", task.getUser().getFullName());
+                taskMap.put("user", userInfo);
+            }
+            
+            // Informação completa da equipa
+            if (task.getAssignedTeam() != null) {
+                Map<String, Object> teamInfo = new HashMap<>();
+                teamInfo.put("id", task.getAssignedTeam().getId());
+                teamInfo.put("name", task.getAssignedTeam().getName());
+                taskMap.put("assignedTeam", teamInfo);
+            }
+            
+            return taskMap;
+        }).collect(java.util.stream.Collectors.toList());
     }
 }
