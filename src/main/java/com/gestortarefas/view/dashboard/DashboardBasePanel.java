@@ -416,6 +416,7 @@ public class DashboardBasePanel extends JPanel {
         private final boolean isAssignedToTeam;
         private final String assignedTeamName;
         private final String dueDate;
+        private final int unreadComments;
         
         public TaskItem(Map<String, Object> taskData) {
             this.id = Long.valueOf(taskData.get("id").toString());
@@ -437,6 +438,10 @@ public class DashboardBasePanel extends JPanel {
                 this.isAssignedToTeam = taskData.get("assignedTeamId") != null;
                 this.assignedTeamName = (String) taskData.get("assignedTeamName");
             }
+            
+            // Carregar contagem de comentários não lidos
+            Object unreadObj = taskData.get("unreadComments");
+            this.unreadComments = (unreadObj != null) ? ((Number) unreadObj).intValue() : 0;
         }
         
         public Long getId() { return id; }
@@ -449,6 +454,7 @@ public class DashboardBasePanel extends JPanel {
         public boolean isAssignedToTeam() { return isAssignedToTeam; }
         public String getAssignedTeamName() { return assignedTeamName; }
         public String getDueDate() { return dueDate; }
+        public int getUnreadComments() { return unreadComments; }
         
         @Override
         public String toString() {
@@ -874,6 +880,11 @@ public class DashboardBasePanel extends JPanel {
                     } else if (!isSelected) {
                         setBackground(Color.WHITE);
                     }
+                } else if (column == 3 && task.getUnreadComments() > 0) {
+                    // Coluna "Atribuído a" com badge de comentários não lidos
+                    String assignmentText = value != null ? value.toString() : "";
+                    setText("<html>" + assignmentText + " <span style='background-color: #dc3545; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: bold;'>" + task.getUnreadComments() + "</span></html>");
+                    if (!isSelected) setBackground(Color.WHITE);
                 } else {
                     setText(value != null ? value.toString() : "");
                     if (!isSelected) setBackground(Color.WHITE);

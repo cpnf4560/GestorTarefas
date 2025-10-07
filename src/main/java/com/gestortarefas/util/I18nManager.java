@@ -117,7 +117,7 @@ public class I18nManager {
         put("please_wait", "Por favor aguarde...");
         
         // Cabeçalhos de Tabelas
-        put("table_priority", "Prioridade");
+        put("table_priority", "P");
         put("table_task", "Tarefa");
         put("table_due_date", "Data Limite");
         put("table_assigned_to", "Atribuído a:");
@@ -248,7 +248,7 @@ public class I18nManager {
         put("please_wait", "Please wait...");
         
         // Table Headers
-        put("table_priority", "Priority");
+        put("table_priority", "P");
         put("table_task", "Task");
         put("table_due_date", "Due Date");
         put("table_assigned_to", "Assigned to:");
