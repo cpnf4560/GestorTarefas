@@ -6,9 +6,14 @@ import com.gestortarefas.gui.Colors;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 /**
  * Painel base para dashboards com layout de 4 colunas
@@ -16,7 +21,64 @@ import java.util.Map;
 public class DashboardBasePanel extends JPanel {
     
     /**
-     * Enum para identificar o tipo de coluna
+     * Ordena tabela por coluna clicada (alterna entre ascendente/descendente)
+     */
+    @SuppressWarnings("unchecked")
+    private void sortTableByColumn(JTable table, int column) {
+        DefaultTableModel model = (DefaultTableModel) table.getModel();
+        
+        // Obter dados atuais
+        Vector data = model.getDataVector();
+        
+        if (data.isEmpty()) return;
+        
+        // Determinar direção de ordenação (alterna entre asc/desc)
+        boolean ascending = true;
+        if (table.getClientProperty("lastSortColumn") != null && 
+            (int) table.getClientProperty("lastSortColumn") == column) {
+            ascending = !(boolean) table.getClientProperty("lastSortAscending");
+        }
+        
+        // Guardar direção de ordenação
+        table.putClientProperty("lastSortColumn", column);
+        table.putClientProperty("lastSortAscending", ascending);
+        
+        final boolean isAscending = ascending;
+        
+        // Ordenar dados
+        Collections.sort(data, (v1, v2) -> {
+            Vector<Object> row1 = (Vector<Object>) v1;
+            Vector<Object> row2 = (Vector<Object>) v2;
+            
+            Object val1 = row1.get(column);
+            Object val2 = row2.get(column);
+            
+            // Tratar valores nulos
+            if (val1 == null && val2 == null) return 0;
+            if (val1 == null) return isAscending ? -1 : 1;
+            if (val2 == null) return isAscending ? 1 : -1;
+            
+            // Comparar valores
+            int result;
+            if (val1 instanceof Comparable && val2 instanceof Comparable) {
+                result = ((Comparable) val1).compareTo(val2);
+            } else {
+                result = val1.toString().compareTo(val2.toString());
+            }
+            
+            return isAscending ? result : -result;
+        });
+        
+        // Atualizar tabela
+        model.setRowCount(0);
+        for (Object rowObj : data) {
+            Vector<Object> row = (Vector<Object>) rowObj;
+            model.addRow(row);
+        }
+    }
+    
+    /**
+     * Classe interna para representar os tipos de colunas
      */
     protected enum ColumnType {
         PENDING,
@@ -129,6 +191,15 @@ public class DashboardBasePanel extends JPanel {
             
             // Mouse listener para clique duplo
             table.addMouseListener(new TaskTableMouseListener());
+            
+            // Mouse listener para clique no cabeçalho (ordenação)
+            table.getTableHeader().addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    int column = table.columnAtPoint(e.getPoint());
+                    sortTableByColumn(table, column);
+                }
+            });
         }
     }
     

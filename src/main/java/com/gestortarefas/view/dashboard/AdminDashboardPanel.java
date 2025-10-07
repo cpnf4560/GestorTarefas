@@ -1548,11 +1548,17 @@ public class AdminDashboardPanel extends DashboardBasePanel {
         userFilter.addActionListener(e -> applyFilters());
         filterPanel.add(userFilter);
         
+        // Carregar utilizadores em background
+        loadUsersForFilter();
+        
         // Filtro por Equipa
         filterPanel.add(new JLabel("Equipa:"));
         teamFilter = new JComboBox<>(new String[]{"Todas"});
         teamFilter.addActionListener(e -> applyFilters());
         filterPanel.add(teamFilter);
+        
+        // Carregar equipas em background
+        loadTeamsForFilter();
         
         // Ordenação
         filterPanel.add(new JLabel("Ordenar por:"));
@@ -1799,6 +1805,56 @@ public class AdminDashboardPanel extends DashboardBasePanel {
             
             applyFilters();
         }
+    }
+    
+    /**
+     * Carrega utilizadores para o filtro
+     */
+    private void loadUsersForFilter() {
+        new Thread(() -> {
+            try {
+                List<Map<String, Object>> users = apiClient.getAllUsers();
+                
+                SwingUtilities.invokeLater(() -> {
+                    userFilter.removeAllItems();
+                    userFilter.addItem("Todos");
+                    
+                    for (Map<String, Object> user : users) {
+                        String username = (String) user.get("username");
+                        if (username != null) {
+                            userFilter.addItem(username);
+                        }
+                    }
+                });
+            } catch (Exception e) {
+                System.err.println("Erro ao carregar utilizadores para filtro: " + e.getMessage());
+            }
+        }).start();
+    }
+    
+    /**
+     * Carrega equipas para o filtro
+     */
+    private void loadTeamsForFilter() {
+        new Thread(() -> {
+            try {
+                List<Map<String, Object>> teams = apiClient.getAllTeams();
+                
+                SwingUtilities.invokeLater(() -> {
+                    teamFilter.removeAllItems();
+                    teamFilter.addItem("Todas");
+                    
+                    for (Map<String, Object> team : teams) {
+                        String teamName = (String) team.get("name");
+                        if (teamName != null) {
+                            teamFilter.addItem(teamName);
+                        }
+                    }
+                });
+            } catch (Exception e) {
+                System.err.println("Erro ao carregar equipas para filtro: " + e.getMessage());
+            }
+        }).start();
     }
     
     /**
