@@ -1548,6 +1548,10 @@ public class AdminDashboardPanel extends DashboardBasePanel {
                 apiClient
             );
             commentsDialog.setVisible(true);
+
+            if (commentsDialog.isMarkedAsRead()) {
+                refreshDashboard();
+            }
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, 

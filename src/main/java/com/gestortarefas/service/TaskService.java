@@ -432,7 +432,9 @@ public class TaskService {
     @Transactional(readOnly = true)
     public List<Task> getCompletedTasksForUser(User user) {
         LocalDateTime threeDaysAgo = LocalDateTime.now().minusDays(3);
-        List<Task> allCompleted = taskRepository.findByUserAndStatus(user, TaskStatus.CONCLUIDA);
+        // Incluir também tarefas com status FINALIZADO (arquivadas logicamente)
+        List<TaskStatus> completedStatuses = java.util.Arrays.asList(TaskStatus.CONCLUIDA, TaskStatus.FINALIZADO);
+        List<Task> allCompleted = taskRepository.findByUserAndStatusIn(user, completedStatuses);
         
         // Filtrar apenas tarefas concluídas nos últimos 3 dias e não arquivadas
         return allCompleted.stream()
@@ -484,7 +486,8 @@ public class TaskService {
         }
         
         LocalDateTime threeDaysAgo = LocalDateTime.now().minusDays(3);
-        List<Task> allCompleted = taskRepository.findByAssignedTeamAndStatus(team, TaskStatus.CONCLUIDA);
+    List<TaskStatus> completedStatuses = java.util.Arrays.asList(TaskStatus.CONCLUIDA, TaskStatus.FINALIZADO);
+    List<Task> allCompleted = taskRepository.findByAssignedTeamAndStatusIn(team, completedStatuses);
         
         // Filtrar apenas tarefas concluídas nos últimos 3 dias e não arquivadas
         return allCompleted.stream()

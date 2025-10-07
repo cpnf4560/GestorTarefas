@@ -29,6 +29,35 @@ public class RestApiClient {
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
     }
+
+    /**
+     * Obtém contagem de comentários não lidos para um utilizador
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getUnreadCommentsCount(Long userId) {
+        try {
+            String url = BASE_URL + "/dashboard/unread-comments/" + userId;
+            ResponseEntity<?> response = restTemplate.getForEntity(url, Map.class);
+            return (Map<String, Object>) response.getBody();
+        } catch (Exception e) {
+            System.err.println("Erro ao buscar contagem de comentários não lidos: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Marca comentários de uma tarefa como lidos para um utilizador
+     */
+    public boolean markCommentsAsRead(Long taskId, Long userId) {
+        try {
+            String url = BASE_URL + "/dashboard/mark-comments-read/" + taskId + "/" + userId;
+            ResponseEntity<?> response = restTemplate.postForEntity(url, null, Map.class);
+            return response.getStatusCode().is2xxSuccessful();
+        } catch (Exception e) {
+            System.err.println("Erro ao marcar comentários como lidos: " + e.getMessage());
+            return false;
+        }
+    }
     
     /**
      * Busca dashboard do funcionário

@@ -94,6 +94,19 @@ public class EmployeeDashboardPanel extends DashboardBasePanel {
             String username = (String) user.get("username");
             String email = (String) user.get("email");
             userInfoLabel.setText(username + " (" + email + ")");
+
+            // Mostrar contagem de comentários não lidos globais (se houver)
+            try {
+                Map<String, Object> unread = apiClient.getUnreadCommentsCount(currentUserId);
+                if (unread != null && unread.containsKey("totalUnread")) {
+                    int totalUnread = ((Number) unread.get("totalUnread")).intValue();
+                    if (totalUnread > 0) {
+                        userInfoLabel.setText(username + " (" + email + ") - \uD83D\uDD14 " + totalUnread + " não lidos");
+                    }
+                }
+            } catch (Exception ex) {
+                // não crítico - continuar sem badge
+            }
         }
     }
     
@@ -329,6 +342,12 @@ public class EmployeeDashboardPanel extends DashboardBasePanel {
                 apiClient
             );
             commentsDialog.setVisible(true);
+
+            // Se o utilizador marcou os comentários como lidos dentro do diálogo,
+            // recarregar o dashboard para atualizar badges
+            if (commentsDialog.isMarkedAsRead()) {
+                refreshDashboard();
+            }
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, 

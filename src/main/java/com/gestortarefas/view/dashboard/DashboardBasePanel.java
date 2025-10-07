@@ -871,7 +871,19 @@ public class DashboardBasePanel extends JPanel {
                         currentUserId,
                         apiClient
                     );
+
                 commentsDialog.setVisible(true);
+
+                // Ao fechar o diálogo (o JDialog é modal), marcar os comentários como lidos
+                // e recarregar o dashboard para actualizar as badges
+                try {
+                    boolean ok = apiClient.markCommentsAsRead(task.getId(), currentUserId);
+                    if (ok) {
+                        refreshDashboard();
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
             } else {
                 JOptionPane.showMessageDialog(this, 
                     "Não foi possível abrir comentários da tarefa.\nVerifique a ligação à API.", 

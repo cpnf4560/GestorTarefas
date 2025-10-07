@@ -339,6 +339,18 @@ public class ManagerDashboardPanel extends DashboardBasePanel {
                 String email = (String) manager.get("email");
                 if (username != null) {
                     managerInfoLabel.setText(username + (email != null ? " (" + email + ")" : ""));
+                    // Mostrar contagem global de comentários não lidos
+                    try {
+                        Map<String, Object> unread = apiClient.getUnreadCommentsCount(currentUserId);
+                        if (unread != null && unread.containsKey("totalUnread")) {
+                            int totalUnread = ((Number) unread.get("totalUnread")).intValue();
+                            if (totalUnread > 0) {
+                                managerInfoLabel.setText(username + (email != null ? " (" + email + ")" : "") + " - \uD83D\uDD14 " + totalUnread + " não lidos");
+                            }
+                        }
+                    } catch (Exception ex) {
+                        // não critico
+                    }
                 }
             } else {
                 // Fallback: usar informações básicas se disponíveis
@@ -1234,6 +1246,10 @@ public class ManagerDashboardPanel extends DashboardBasePanel {
                 apiClient
             );
             commentsDialog.setVisible(true);
+
+            if (commentsDialog.isMarkedAsRead()) {
+                refreshDashboard();
+            }
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, 

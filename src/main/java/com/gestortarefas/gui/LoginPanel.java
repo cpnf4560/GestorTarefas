@@ -68,7 +68,7 @@ public class LoginPanel extends JPanel {
         loginButton.setBorderPainted(false);
         loginButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         
-        registerButton = new JButton();
+    registerButton = new JButton();
         registerButton.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
         registerButton.setBackground(new Color(108, 117, 125));
         registerButton.setForeground(Color.WHITE);
@@ -76,8 +76,8 @@ public class LoginPanel extends JPanel {
         registerButton.setBorderPainted(false);
         registerButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         
-        // Botão de idioma
-        languageButton = new JButton("🌐 PT/EN");
+    // Botão de idioma (mostra a língua de destino)
+    languageButton = new JButton();
         languageButton.setPreferredSize(new Dimension(80, 30));
         languageButton.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 11));
         languageButton.setBackground(new Color(40, 167, 69));
@@ -85,7 +85,7 @@ public class LoginPanel extends JPanel {
         languageButton.setFocusPainted(false);
         languageButton.setBorderPainted(false);
         languageButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        languageButton.addActionListener(e -> toggleLanguage());
+    languageButton.addActionListener(e -> toggleLanguage());
         
         // Labels para textos traduzíveis
         usernameLabel = new JLabel();
@@ -153,9 +153,9 @@ public class LoginPanel extends JPanel {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
         buttonPanel.setBackground(Colors.SOFT_WHITE);
         loginButton.setPreferredSize(new Dimension(120, 40));
-        registerButton.setPreferredSize(new Dimension(120, 40));
-        buttonPanel.add(loginButton);
-        buttonPanel.add(registerButton);
+    registerButton.setPreferredSize(new Dimension(120, 40));
+    buttonPanel.add(loginButton);
+    buttonPanel.add(registerButton);
         
         gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.CENTER;
         mainPanel.add(buttonPanel, gbc);
@@ -185,7 +185,8 @@ public class LoginPanel extends JPanel {
     
     private void setupEventListeners() {
         loginButton.addActionListener(e -> performLogin());
-        registerButton.addActionListener(e -> openRegisterDialog());
+    // Register button repurposed as Exit with confirmation
+    registerButton.addActionListener(e -> confirmExitFromButton());
         
         // Enter key no campo senha faz login
         passwordField.addActionListener(e -> performLogin());
@@ -322,11 +323,37 @@ public class LoginPanel extends JPanel {
         
         // Atualizar botões
         loginButton.setText(i18n.getText("login"));
-        registerButton.setText("Register"); // Manter consistente
+        // Repurpose register button to be an Exit button with confirmation
+        registerButton.setText(i18n.getText("exit") != null ? i18n.getText("exit") : "Sair");
+
+        // Show target language on languageButton: if current is PT show EN (action will switch to EN), and vice-versa
+        String targetLang = i18n.isEnglish() ? "PT" : "EN";
+        languageButton.setText(targetLang);
         
         // Forçar repaint
         revalidate();
         repaint();
+    }
+
+    private void confirmExitFromButton() {
+        String message = i18n.getText("confirm_exit") != null ? i18n.getText("confirm_exit") : "Tem a certeza que deseja sair da aplicação?";
+        String title = i18n.getText("exit") != null ? i18n.getText("exit") : "Sair";
+
+        int option = JOptionPane.showConfirmDialog(
+            SwingUtilities.getWindowAncestor(this),
+            message,
+            title,
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (option == JOptionPane.YES_OPTION) {
+            Window w = SwingUtilities.getWindowAncestor(this);
+            if (w != null) {
+                w.dispose();
+            }
+            System.exit(0);
+        }
     }
     
     /**

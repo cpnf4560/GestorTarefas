@@ -44,6 +44,11 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      */
     List<Task> findByUserAndStatus(User user, TaskStatus status);
 
+  /**
+   * Busca tarefas de um utilizador por múltiplos status
+   */
+  List<Task> findByUserAndStatusIn(User user, List<TaskStatus> statuses);
+
     /**
      * Busca tarefas por prioridade
      */
@@ -126,6 +131,11 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      * Busca tarefas atribuídas a uma equipa por status
      */
     List<Task> findByAssignedTeamAndStatus(Team assignedTeam, TaskStatus status);
+
+  /**
+   * Busca tarefas atribuídas a uma equipa por múltiplos status
+   */
+  List<Task> findByAssignedTeamAndStatusIn(Team assignedTeam, List<TaskStatus> statuses);
 
     /**
      * Busca tarefas criadas por um utilizador específico

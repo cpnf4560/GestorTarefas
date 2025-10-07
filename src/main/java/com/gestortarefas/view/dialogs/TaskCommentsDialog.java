@@ -32,6 +32,7 @@ public class TaskCommentsDialog extends JDialog {
     private JButton sendButton;
     private JButton refreshButton;
     private JButton closeButton;
+    private JButton markAsReadButton;
     private JLabel statusLabel;
     private JLabel commentCountLabel;
     
@@ -48,6 +49,13 @@ public class TaskCommentsDialog extends JDialog {
         setupDialog();
         loadComments();
         startAutoRefresh();
+    }
+
+    // Indica se foi marcado como lido pelo utilizador dentro deste diálogo
+    private boolean markedAsRead = false;
+
+    public boolean isMarkedAsRead() {
+        return markedAsRead;
     }
     
     private void initializeComponents() {
@@ -132,6 +140,11 @@ public class TaskCommentsDialog extends JDialog {
         bottomPanel.add(statusLabel, BorderLayout.CENTER);
         
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        // Botão marcar como lido
+        markAsReadButton = new JButton("Marcar como lido");
+        markAsReadButton.addActionListener(e -> markCommentsAsReadAndClose());
+        buttonPanel.add(markAsReadButton);
+
         closeButton = new JButton("Fechar");
         closeButton.addActionListener(e -> {
             if (refreshTimer != null) {
@@ -475,5 +488,57 @@ public class TaskCommentsDialog extends JDialog {
             }
         });
         refreshTimer.start();
+    }
+
+    /**
+     * Marca comentários como lidos via API e fecha o diálogo em caso de sucesso.
+     */
+    private void markCommentsAsReadAndClose() {
+        // Desabilitar botão para evitar múltiplos cliques
+        markAsReadButton.setEnabled(false);
+        markAsReadButton.setText("Marcando...");
+
+        SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() throws Exception {
+                try {
+                    return apiClient.markCommentsAsRead(taskId, currentUserId);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    return false;
+                }
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    boolean success = get();
+                    if (success) {
+                        markedAsRead = true;
+                        statusLabel.setText("Comentários marcados como lidos");
+                        statusLabel.setForeground(new Color(34, 139, 34));
+
+                        if (refreshTimer != null) {
+                            refreshTimer.stop();
+                        }
+
+                        dispose();
+                    } else {
+                        JOptionPane.showMessageDialog(TaskCommentsDialog.this,
+                            "Não foi possível marcar como lido. Tente novamente.",
+                            "Erro",
+                            JOptionPane.ERROR_MESSAGE);
+                        markAsReadButton.setEnabled(true);
+                        markAsReadButton.setText("Marcar como lido");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    markAsReadButton.setEnabled(true);
+                    markAsReadButton.setText("Marcar como lido");
+                }
+            }
+        };
+
+        worker.execute();
     }
 }
