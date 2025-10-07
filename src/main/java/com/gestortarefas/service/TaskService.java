@@ -579,13 +579,35 @@ public class TaskService {
         List<Object[]> rawStats = taskRepository.getOverallTaskStats();
         Map<String, Long> statusCounts = new HashMap<>();
         
+        long totalTasks = 0;
+        long activeTasks = 0;
+        long completedTasks = 0;
+        
         for (Object[] row : rawStats) {
             TaskStatus status = (TaskStatus) row[0];
             Long count = (Long) row[1];
             statusCounts.put(status.name(), count);
+            
+            totalTasks += count;
+            if (status == TaskStatus.CONCLUIDA) {
+                completedTasks = count;
+            } else if (status == TaskStatus.EM_ANDAMENTO || status == TaskStatus.PENDENTE) {
+                activeTasks += count;
+            }
         }
         
+        // Contar tarefas atrasadas
+        long overdueTasks = findOverdueTasks().size();
+        
+        // Calcular taxa de conclusão
+        double completionRate = totalTasks > 0 ? (completedTasks * 100.0 / totalTasks) : 0.0;
+        
         stats.put("statusCounts", statusCounts);
+        stats.put("total", (int) totalTasks);
+        stats.put("active", (int) activeTasks);
+        stats.put("completed", (int) completedTasks);
+        stats.put("overdue", (int) overdueTasks);
+        stats.put("completionRate", completionRate);
         stats.put("topUsers", taskRepository.getTopUsersByCompletedTasks());
         stats.put("topTeams", taskRepository.getTopTeamsByCompletedTasks());
         

@@ -109,12 +109,13 @@ public class DashboardBasePanel extends JPanel {
             table.getTableHeader().setBackground(new Color(240, 240, 240));
             table.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, Color.GRAY));
             
-            // Definir larguras das colunas (estilo Excel otimizado)
-            table.getColumnModel().getColumn(0).setPreferredWidth(80);  // Prioridade
-            table.getColumnModel().getColumn(1).setPreferredWidth(250); // Tarefa
-            table.getColumnModel().getColumn(2).setPreferredWidth(100); // Data Limite
-            table.getColumnModel().getColumn(3).setPreferredWidth(130); // Atribuído a
-            table.getColumnModel().getColumn(4).setPreferredWidth(100); // Status
+            // Definir larguras das colunas (estilo Excel otimizado - mais espaço para Tarefa)
+            table.getColumnModel().getColumn(0).setPreferredWidth(50);  // Prioridade (P)
+            table.getColumnModel().getColumn(1).setPreferredWidth(350); // Tarefa (expandida)
+            table.getColumnModel().getColumn(2).setPreferredWidth(90);  // Data Limite
+            table.getColumnModel().getColumn(3).setPreferredWidth(120); // Atribuído a
+            table.getColumnModel().getColumn(4).setPreferredWidth(100); // Equipa
+            table.getColumnModel().getColumn(5).setPreferredWidth(90);  // Status
             
             // Aplicar tema moderno e alinhamento central (exceto Tarefa - coluna 1)
             Colors.applyModernTable(table);
@@ -194,7 +195,11 @@ public class DashboardBasePanel extends JPanel {
                 break;
                 
             case COMPLETED:
-                // Nenhum botão para tarefas concluídas
+                // Botão Arquivar para tarefas concluídas
+                JButton archiveButton = new JButton("📦 Arquivar");
+                archiveButton.setToolTipText("Arquivar tarefa selecionada");
+                archiveButton.addActionListener(e -> archiveTask());
+                buttonPanel.add(archiveButton);
                 break;
         }
         
@@ -407,6 +412,55 @@ public class DashboardBasePanel extends JPanel {
             } else {
                 JOptionPane.showMessageDialog(this, "Erro ao concluir tarefa.", "Erro", JOptionPane.ERROR_MESSAGE);
             }
+        }
+    }
+    
+    /**
+     * Arquiva uma tarefa concluída
+     */
+    private void archiveTask() {
+        int selectedRow = completedTable.getSelectedRow();
+        if (selectedRow >= 0) {
+            TaskItem selected = completedTableModel.getTaskAt(selectedRow);
+            if (selected != null) {
+                int confirm = JOptionPane.showConfirmDialog(this,
+                    "Tem certeza que deseja arquivar a tarefa:\n\"" + selected.getTitle() + "\"?\n\n" +
+                    "A tarefa será removida da dashboard mas ficará disponível no separador Tarefas.",
+                    "Confirmar Arquivo",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE);
+                
+                if (confirm == JOptionPane.YES_OPTION) {
+                    try {
+                        boolean success = apiClient.archiveTask(selected.getId(), currentUserId);
+                        
+                        if (success) {
+                            JOptionPane.showMessageDialog(this,
+                                "Tarefa arquivada com sucesso!",
+                                "Sucesso",
+                                JOptionPane.INFORMATION_MESSAGE);
+                            // Recarregar dashboard
+                            refreshDashboard();
+                        } else {
+                            JOptionPane.showMessageDialog(this,
+                                "Erro ao arquivar a tarefa. Tente novamente.",
+                                "Erro",
+                                JOptionPane.ERROR_MESSAGE);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        JOptionPane.showMessageDialog(this,
+                            "Erro ao arquivar a tarefa: " + e.getMessage(),
+                            "Erro",
+                            JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, 
+                "Selecione uma tarefa concluída para arquivar.",
+                "Nenhuma Tarefa Selecionada",
+                JOptionPane.WARNING_MESSAGE);
         }
     }
     
@@ -906,13 +960,13 @@ public class DashboardBasePanel extends JPanel {
                     if (!isSelected) setBackground(Color.WHITE);
                 }
                 
-                // Alinhamento das colunas
+                // Alinhamento das colunas (centro exceto Tarefa)
                 switch (column) {
                     case 0: setHorizontalAlignment(SwingConstants.CENTER); break; // Prioridade
-                    case 1: setHorizontalAlignment(SwingConstants.LEFT); break;   // Tarefa
+                    case 1: setHorizontalAlignment(SwingConstants.LEFT); break;   // Tarefa (esquerda)
                     case 2: setHorizontalAlignment(SwingConstants.CENTER); break; // Data
-                    case 3: setHorizontalAlignment(SwingConstants.LEFT); break;   // Atribuído a
-                    case 4: setHorizontalAlignment(SwingConstants.LEFT); break;   // Equipa
+                    case 3: setHorizontalAlignment(SwingConstants.CENTER); break; // Atribuído a (centro)
+                    case 4: setHorizontalAlignment(SwingConstants.CENTER); break; // Equipa (centro)
                     case 5: setHorizontalAlignment(SwingConstants.CENTER); break; // Status
                 }
             }
