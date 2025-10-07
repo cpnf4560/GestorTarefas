@@ -2,7 +2,6 @@ package com.gestortarefas.view;
 
 import com.gestortarefas.gui.LoginPanel;
 import com.gestortarefas.model.LoggedUser;
-import com.gestortarefas.model.UserRole;
 
 import javax.swing.*;
 import java.awt.*;

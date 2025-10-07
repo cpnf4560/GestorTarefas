@@ -159,33 +159,33 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findPendingTasks();
 
     /**
-     * Busca tarefas pendentes de um utilizador
+     * Busca tarefas pendentes de um utilizador (exclui arquivadas)
      */
-    @Query("SELECT t FROM Task t WHERE t.user = :user AND t.status != 'CONCLUIDA'")
+    @Query("SELECT t FROM Task t WHERE t.user = :user AND t.status != 'CONCLUIDA' AND (t.archived = false OR t.archived IS NULL)")
     List<Task> findPendingTasksByUser(@Param("user") User user);
 
     /**
-     * Busca tarefas pendentes de uma equipa
+     * Busca tarefas pendentes de uma equipa (exclui arquivadas)
      */
-    @Query("SELECT t FROM Task t WHERE t.assignedTeam = :team AND t.status != 'CONCLUIDA'")
+    @Query("SELECT t FROM Task t WHERE t.assignedTeam = :team AND t.status != 'CONCLUIDA' AND (t.archived = false OR t.archived IS NULL)")
     List<Task> findPendingTasksByTeam(@Param("team") Team team);
 
     /**
-     * Busca tarefas com prazo hoje
+     * Busca tarefas com prazo hoje (exclui arquivadas)
      */
-    @Query("SELECT t FROM Task t WHERE CAST(t.dueDate AS DATE) = CAST(:today AS DATE) AND t.status != 'CONCLUIDA'")
+    @Query("SELECT t FROM Task t WHERE CAST(t.dueDate AS DATE) = CAST(:today AS DATE) AND t.status != 'CONCLUIDA' AND (t.archived = false OR t.archived IS NULL)")
     List<Task> findTasksDueToday(@Param("today") LocalDateTime today);
 
     /**
-     * Busca tarefas com prazo hoje de um utilizador
+     * Busca tarefas com prazo hoje de um utilizador (exclui arquivadas)
      */
-    @Query("SELECT t FROM Task t WHERE t.user = :user AND CAST(t.dueDate AS DATE) = CAST(:today AS DATE) AND t.status != 'CONCLUIDA'")
+    @Query("SELECT t FROM Task t WHERE t.user = :user AND CAST(t.dueDate AS DATE) = CAST(:today AS DATE) AND t.status != 'CONCLUIDA' AND (t.archived = false OR t.archived IS NULL)")
     List<Task> findTasksDueTodayByUser(@Param("user") User user, @Param("today") LocalDateTime today);
 
     /**
-     * Busca tarefas com prazo hoje de uma equipa
+     * Busca tarefas com prazo hoje de uma equipa (exclui arquivadas)
      */
-    @Query("SELECT t FROM Task t WHERE t.assignedTeam = :team AND CAST(t.dueDate AS DATE) = CAST(:today AS DATE) AND t.status != 'CONCLUIDA'")
+    @Query("SELECT t FROM Task t WHERE t.assignedTeam = :team AND CAST(t.dueDate AS DATE) = CAST(:today AS DATE) AND t.status != 'CONCLUIDA' AND (t.archived = false OR t.archived IS NULL)")
     List<Task> findTasksDueTodayByTeam(@Param("team") Team team, @Param("today") LocalDateTime today);
 
     /**
@@ -240,4 +240,24 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      */
     @Query("SELECT t.assignedTeam, COUNT(t) FROM Task t WHERE t.status = 'CONCLUIDA' AND t.assignedTeam IS NOT NULL GROUP BY t.assignedTeam ORDER BY COUNT(t) DESC")
     List<Object[]> getTopTeamsByCompletedTasks();
+
+    /**
+     * Busca tarefas arquivadas ordenadas por data de conclusão (mais recente primeiro)
+     */
+    List<Task> findByArchivedTrueOrderByCompletedAtDesc();
+
+    /**
+     * Busca tarefas não arquivadas (para não mostrar arquivadas na dashboard principal)
+     */
+    List<Task> findByArchivedFalse();
+
+    /**
+     * Busca tarefas não arquivadas por status
+     */
+    List<Task> findByArchivedFalseAndStatus(TaskStatus status);
+
+    /**
+     * Busca tarefas não arquivadas de um utilizador
+     */
+    List<Task> findByArchivedFalseAndUser(User user);
 }

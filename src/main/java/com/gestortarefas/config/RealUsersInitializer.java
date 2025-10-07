@@ -4,111 +4,144 @@ import com.gestortarefas.model.*;
 import com.gestortarefas.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 
 /**
- * ⚠️ DESATIVADO - Funcionalidade movida para RealUsersInitializer
- * Este ficheiro já não é necessário pois toda a inicialização (utilizadores, equipas e tarefas)
- * foi consolidada no RealUsersInitializer para garantir ordem de execução correcta.
+ * Inicializador COMPLETO dos dados da empresa
+ * Cria: 30 utilizadores, 8 equipas e 27 tarefas
  */
-//@Component // DESATIVADO - Tudo agora em RealUsersInitializer
-@Order(10)
-public class TestDataInitializer implements CommandLineRunner {
+@Configuration
+@Order(1)
+public class RealUsersInitializer {
 
     @Autowired
     private UserRepository userRepository;
-
+    
     @Autowired
     private TeamRepository teamRepository;
-
+    
     @Autowired
     private TaskRepository taskRepository;
 
     @Autowired
-    private UserProfileRepository userProfileRepository;
-
-    @Autowired
     private PasswordEncoder passwordEncoder;
 
-    private final Random random = new Random();
+    @Bean
+    CommandLineRunner initCompleteData() {
+        return args -> {
+            // PASSO 1: Criar utilizadores
+            if (userRepository.count() > 0) {
+                System.out.println("=== Dados já existem, saltando inicialização ===");
+                return;
+            }
 
-    @Override
-    public void run(String... args) throws Exception {
-        // Esperar um pouco para garantir que RealUsersInitializer terminou
-        Thread.sleep(2000); // 2 segundos
-        
-        // Usar utilizadores existentes (criados pelo RealUsersInitializer)
-        List<User> users = userRepository.findAll();
-        if (users.isEmpty()) {
-            System.out.println("=== ERRO: Nenhum utilizador encontrado! ===");
-            return;
-        }
-        
-        System.out.println("=== Encontrados " + users.size() + " utilizadores ===");
-        
-        // Criar equipas se não existirem
-        List<Team> teams;
-        if (teamRepository.count() == 0) {
-            System.out.println("=== Inicializando equipas de teste ===");
-            teams = createTestTeams(users);
-        } else {
-            teams = teamRepository.findAll();
-        }
-        
-        // Criar tarefas se não existirem
-        if (taskRepository.count() == 0) {
-            System.out.println("=== Inicializando tarefas de teste ===");
-            createTestTasks(users, teams);
-            System.out.println("=== Tarefas de teste criadas com sucesso! ===");
-        }
+            System.out.println("=== Criando 30 utilizadores reais da empresa ===");
+
+            // ====== ADMINISTRADORES (3) ======
+            createUser("martim.sottomayor", "martim.sottomayor123", "Martim Sottomayor", 
+                      "martim.sottomayor@gestordetarefas.pt", UserRole.ADMINISTRADOR);
+            createUser("catarina.balsemao", "catarina.balsemao123", "Catarina Balsemão", 
+                      "catarina.balsemao@gestordetarefas.pt", UserRole.ADMINISTRADOR);
+            createUser("admin.correia", "admin.correia123", "Admin Carlos Correia", 
+                      "admin.correia@gestordetarefas.pt", UserRole.ADMINISTRADOR);
+
+            // ====== GERENTES (7) ======
+            createUser("lucile.almeida", "lucile.almeida123", "Lucile Almeida", 
+                      "lucilealmeida@gestordetarefas.pt", UserRole.GERENTE);
+            createUser("bessa.ribeiro", "bessa.ribeiro123", "Bessa Ribeiro", 
+                      "bessaribeiro@gestordetarefas.pt", UserRole.GERENTE);
+            createUser("diana.brochado", "diana.brochado123", "Diana Brochado", 
+                      "dianabrochado@gestordetarefas.pt", UserRole.GERENTE);
+            createUser("paulo.bessa", "paulo.bessa123", "Paulo Bessa", 
+                      "paulobessa@gestordetarefas.pt", UserRole.GERENTE);
+            createUser("pedro.lopes", "pedro.lopes123", "Pedro Lopes", 
+                      "pedrolopes@gestordetarefas.pt", UserRole.GERENTE);
+            createUser("antonio.nolasco", "antonio.nolasco123", "António Nolasco", 
+                      "antonionolasco@gestordetarefas.pt", UserRole.GERENTE);
+            createUser("rui.goncalves", "rui.goncalves123", "Rui Gonçalves", 
+                      "ruigoncalves@gestordetarefas.pt", UserRole.GERENTE);
+
+            // ====== FUNCIONÁRIOS (20) ======
+            createUser("rita.almeida", "rita.almeida123", "Rita Almeida", 
+                      "ritaalmeida@gestordetarefas.pt", UserRole.FUNCIONARIO);
+            createUser("sandra.rocha", "sandra.rocha123", "Sandra Rocha", 
+                      "sandrarocha@gestordetarefas.pt", UserRole.FUNCIONARIO);
+            createUser("ricardo.leal", "ricardo.leal123", "Ricardo Leal", 
+                      "ricardoleal@gestordetarefas.pt", UserRole.FUNCIONARIO);
+            createUser("carla.silva", "carla.silva123", "Carla Silva", 
+                      "carlasilva@gestordetarefas.pt", UserRole.FUNCIONARIO);
+            createUser("melinda.szekely", "melinda.szekely123", "Melinda Szekely", 
+                      "melindaszekely@gestordetarefas.pt", UserRole.FUNCIONARIO);
+            createUser("tatiana.albuquerque", "tatiana.albuquerque123", "Tatiana Albuquerque", 
+                      "tatianaalbuquerque@gestordetarefas.pt", UserRole.FUNCIONARIO);
+            createUser("rita.oliveira", "rita.oliveira123", "Rita Oliveira", 
+                      "ritaoliveira@gestordetarefas.pt", UserRole.FUNCIONARIO);
+            createUser("ana.reis", "ana.reis123", "Ana Reis", 
+                      "anareis@gestordetarefas.pt", UserRole.FUNCIONARIO);
+            createUser("joao.couto", "joao.couto123", "João Couto", 
+                      "joaocouto@gestordetarefas.pt", UserRole.FUNCIONARIO);
+            createUser("ines.rodrigues", "ines.rodrigues123", "Inês Rodrigues", 
+                      "inesrodrigues@gestordetarefas.pt", UserRole.FUNCIONARIO);
+            createUser("teresa.correia", "teresa.correia123", "Teresa Correia", 
+                      "teresacorreia@gestordetarefas.pt", UserRole.FUNCIONARIO);
+            createUser("vania.lourenco", "vania.lourenco123", "Vânia Lourenço", 
+                      "vanialourenco@gestordetarefas.pt", UserRole.FUNCIONARIO);
+            createUser("anca.tusa", "anca.tusa123", "Anca Tusa", 
+                      "ancatusa@gestordetarefas.pt", UserRole.FUNCIONARIO);
+            createUser("rogerio.silva", "rogerio.silva123", "Rogério Silva", 
+                      "rogeriosilva@gestordetarefas.pt", UserRole.FUNCIONARIO);
+            createUser("tiago.rodrigues", "tiago.rodrigues123", "Tiago Rodrigues", 
+                      "tiagorodrigues@gestordetarefas.pt", UserRole.FUNCIONARIO);
+            createUser("mohammad.aldossari", "mohammad.aldossari123", "Mohammad Al-Dossari", 
+                      "mohammadaldossari@gestordetarefas.pt", UserRole.FUNCIONARIO);
+            createUser("vijay.kumar", "vijay.kumar123", "Vijay Kumar", 
+                      "vijaykumar@gestordetarefas.pt", UserRole.FUNCIONARIO);
+            createUser("sanita.rahman", "sanita.rahman123", "Sanita Rahman", 
+                      "sanitarahman@gestordetarefas.pt", UserRole.FUNCIONARIO);
+            createUser("monica.lewinsky", "monica.lewinsky123", "Mónica Lewinsky", 
+                      "monicalewinsky@gestordetarefas.pt", UserRole.FUNCIONARIO);
+            createUser("cristiana.oliveira", "cristiana.oliveira123", "Cristiana Oliveira", 
+                      "cristianaoliveira@gestordetarefas.pt", UserRole.FUNCIONARIO);
+
+            System.out.println("=== 30 utilizadores criados com sucesso! ===");
+            System.out.println("Password padrão: username123");
+            System.out.println("Exemplos:");
+            System.out.println("  martim.sottomayor / martim.sottomayor123");
+            System.out.println("  lucile.almeida / lucile.almeida123");
+            System.out.println("  rita.almeida / rita.almeida123");
+            
+            // ============================================================
+            // PASSO 2: CRIAR 8 EQUIPAS COM ATRIBUIÇÃO DE MEMBROS
+            // ============================================================
+            System.out.println("\n=== CRIANDO 8 EQUIPAS ===");
+            List<User> allUsers = userRepository.findAll();
+            List<Team> teams = createTestTeams(allUsers);
+            System.out.println("✓ " + teams.size() + " equipas criadas com sucesso!");
+            
+            // ============================================================
+            // PASSO 3: CRIAR 27 TAREFAS
+            // ============================================================
+            System.out.println("\n=== CRIANDO 27 TAREFAS ===");
+            createTestTasks(allUsers, teams);
+            System.out.println("✓ Tarefas criadas com sucesso!");
+            
+            System.out.println("\n========================================");
+            System.out.println("✓✓✓ INICIALIZAÇÃO COMPLETA ✓✓✓");
+            System.out.println("  - 30 utilizadores");
+            System.out.println("  - 8 equipas com membros");
+            System.out.println("  - 27 tarefas atribuídas");
+            System.out.println("========================================");
+        };
     }
 
-    private List<User> createTestUsers() {
-        System.out.println("Criando utilizadores de teste...");
-
-        // Admin existente
-        User admin = createUser("admin", "admin123", "Administrador Sistema", 
-                               "admin@gestortarefas.com", UserRole.ADMINISTRADOR);
-
-        // Gerentes
-        User gerente1 = createUser("gerente", "gerente123", "Maria Silva", 
-                                  "maria.silva@gestortarefas.com", UserRole.GERENTE);
-        User gerente2 = createUser("gerente2", "gerente123", "João Santos", 
-                                  "joao.santos@gestortarefas.com", UserRole.GERENTE);
-        User gerente3 = createUser("gerente3", "gerente123", "Ana Costa", 
-                                  "ana.costa@gestortarefas.com", UserRole.GERENTE);
-
-        // Funcionários
-        User funcionario1 = createUser("funcionario", "funcionario123", "Pedro Oliveira", 
-                                      "pedro.oliveira@gestortarefas.com", UserRole.FUNCIONARIO);
-        User funcionario2 = createUser("carlos.mendes", "funcionario123", "Carlos Mendes", 
-                                      "carlos.mendes@gestortarefas.com", UserRole.FUNCIONARIO);
-        User funcionario3 = createUser("sofia.rodrigues", "funcionario123", "Sofia Rodrigues", 
-                                      "sofia.rodrigues@gestortarefas.com", UserRole.FUNCIONARIO);
-        User funcionario4 = createUser("miguel.ferreira", "funcionario123", "Miguel Ferreira", 
-                                      "miguel.ferreira@gestortarefas.com", UserRole.FUNCIONARIO);
-        User funcionario5 = createUser("rita.pereira", "funcionario123", "Rita Pereira", 
-                                      "rita.pereira@gestortarefas.com", UserRole.FUNCIONARIO);
-        User funcionario6 = createUser("bruno.alves", "funcionario123", "Bruno Alves", 
-                                      "bruno.alves@gestortarefas.com", UserRole.FUNCIONARIO);
-        User funcionario7 = createUser("catarina.lima", "funcionario123", "Catarina Lima", 
-                                      "catarina.lima@gestortarefas.com", UserRole.FUNCIONARIO);
-        User funcionario8 = createUser("ricardo.silva", "funcionario123", "Ricardo Silva", 
-                                      "ricardo.silva@gestortarefas.com", UserRole.FUNCIONARIO);
-
-        return Arrays.asList(admin, gerente1, gerente2, gerente3, 
-                           funcionario1, funcionario2, funcionario3, funcionario4,
-                           funcionario5, funcionario6, funcionario7, funcionario8);
-    }
-
-    private User createUser(String username, String password, String fullName, String email, UserRole role) {
+    private void createUser(String username, String password, String fullName, String email, UserRole role) {
         User user = new User();
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(password));
@@ -117,42 +150,14 @@ public class TestDataInitializer implements CommandLineRunner {
         user.setRole(role);
         user.setActive(true);
         user.setCreatedAt(LocalDateTime.now());
-
-        user = userRepository.save(user);
-
-        // Criar perfil básico
-        UserProfile profile = new UserProfile();
-        profile.setUser(user);
-        profile.setJobTitle(getJobTitle(role));
-        profile.setDepartment(getDepartment(role));
-        profile.setLocation("Porto, Portugal");
-        profile.setCreatedAt(LocalDateTime.now());
-        profile.setEmailNotifications(true);
-        
-        userProfileRepository.save(profile);
-
-        System.out.println("Utilizador criado: " + username + " (" + fullName + ") - " + role);
-        return user;
+        userRepository.save(user);
+        System.out.println("✓ Criado: " + username + " (" + role + ")");
     }
-
-    private String getJobTitle(UserRole role) {
-        switch (role) {
-            case ADMINISTRADOR: return "Administrador de Sistema";
-            case GERENTE: return "Gestor de Projetos";
-            case FUNCIONARIO: return "Desenvolvedor";
-            default: return "Funcionário";
-        }
-    }
-
-    private String getDepartment(UserRole role) {
-        switch (role) {
-            case ADMINISTRADOR: return "TI";
-            case GERENTE: return "Gestão de Projetos";
-            case FUNCIONARIO: return random.nextBoolean() ? "Desenvolvimento" : "Qualidade";
-            default: return "Geral";
-        }
-    }
-
+    
+    // ================================================================
+    // MÉTODOS DE CRIAÇÃO DE EQUIPAS
+    // ================================================================
+    
     private List<Team> createTestTeams(List<User> users) {
         System.out.println("Criando 8 equipas da empresa de tubos de aço...");
 
@@ -232,7 +237,7 @@ public class TestDataInitializer implements CommandLineRunner {
         addMembersToTeam(teamApoio, Arrays.asList(antonio, anca, rogerio));
 
         // Equipa 8 - Financeiro
-        Team teamFinanceiro = createTeam("Financeiro", 
+        Team teamFinanceiro = createTeam("Financeiro",
                                         "Gestão financeira e contabilidade",
                                         rui);
         addMembersToTeam(teamFinanceiro, Arrays.asList(rui, tiago, mohammad, vijay, sanita, monica, cristiana));
@@ -240,7 +245,7 @@ public class TestDataInitializer implements CommandLineRunner {
         return Arrays.asList(teamDirecao, teamGestao, teamComercial, teamCompras, 
                            teamLogistica, teamProducao, teamApoio, teamFinanceiro);
     }
-
+    
     private User findUserByUsername(List<User> users, String username) {
         return users.stream()
             .filter(u -> u.getUsername().equals(username))
@@ -280,9 +285,13 @@ public class TestDataInitializer implements CommandLineRunner {
         teamRepository.save(managedTeam);
         System.out.println("✓ " + members.size() + " membros adicionados à equipa " + managedTeam.getName());
     }
-
+    
+    // ================================================================
+    // MÉTODOS DE CRIAÇÃO DE TAREFAS
+    // ================================================================
+    
     private void createTestTasks(List<User> users, List<Team> teams) {
-        System.out.println("Criando ~30 tarefas da empresa de tubos de aço...");
+        System.out.println("Criando 27 tarefas da empresa de tubos de aço...");
         
         // Buscar equipas por nome
         Team teamDirecao = findTeamByName(teams, "Direção");
@@ -323,7 +332,7 @@ public class TestDataInitializer implements CommandLineRunner {
         
         createTask("Reunião com Investidores",
                   "Apresentar resultados do trimestre e discutir planos de investimento em novas linhas de produção",
-                  Task.TaskPriority.URGENTE, Task.TaskStatus.EM_ANDAMENTO, catarina, martim, teamDirecao,
+                  Task.TaskPriority.ALTA, Task.TaskStatus.EM_ANDAMENTO, catarina, martim, teamDirecao,
                   now.plusDays(7), "investidores,financeiro", 8);
         
         createTask("Certificação ISO 9001",
@@ -360,7 +369,7 @@ public class TestDataInitializer implements CommandLineRunner {
         
         createTask("Proposta Cliente ABC Construções",
                   "Elaborar proposta comercial detalhada para fornecimento de 500 toneladas de tubos galvanizados",
-                  Task.TaskPriority.URGENTE, Task.TaskStatus.EM_ANDAMENTO, bessa, bessa, teamComercial,
+                  Task.TaskPriority.ALTA, Task.TaskStatus.EM_ANDAMENTO, bessa, bessa, teamComercial,
                   now.plusDays(2), "proposta,cliente", 4);
         
         createTask("Feira Internacional do Aço",
@@ -381,7 +390,7 @@ public class TestDataInitializer implements CommandLineRunner {
         
         createTask("Compra Equipamentos Galvanização",
                   "Processar compra de novos equipamentos para linha de galvanização dos tubos",
-                  Task.TaskPriority.URGENTE, Task.TaskStatus.EM_ANDAMENTO, diana, diana, teamCompras,
+                  Task.TaskPriority.ALTA, Task.TaskStatus.EM_ANDAMENTO, diana, diana, teamCompras,
                   now.plusDays(5), "equipamentos,galvanizacao", 8);
         
         // === TAREFAS LOGÍSTICA (3) ===
@@ -403,7 +412,7 @@ public class TestDataInitializer implements CommandLineRunner {
         // === TAREFAS PRODUÇÃO (4) ===
         createTask("Manutenção Preventiva Máquinas",
                   "Executar manutenção preventiva em todas as máquinas de corte e soldadura",
-                  Task.TaskPriority.URGENTE, Task.TaskStatus.PENDENTE, pedro, pedro, teamProducao,
+                  Task.TaskPriority.ALTA, Task.TaskStatus.PENDENTE, pedro, pedro, teamProducao,
                   now.plusDays(3), "manutencao,maquinas", 16);
         
         createTask("Linha Produção Tubos Inox",
@@ -418,7 +427,7 @@ public class TestDataInitializer implements CommandLineRunner {
         
         createTask("Produção Lote Especial",
                   "Produzir lote especial de 200 tubos com especificações personalizadas para cliente VIP",
-                  Task.TaskPriority.URGENTE, Task.TaskStatus.EM_ANDAMENTO, ines, pedro, teamProducao,
+                  Task.TaskPriority.ALTA, Task.TaskStatus.EM_ANDAMENTO, ines, pedro, teamProducao,
                   now.plusDays(4), "lote-especial,vip", 12);
         
         // === TAREFAS APOIO AO CLIENTE (4) ===
@@ -439,7 +448,7 @@ public class TestDataInitializer implements CommandLineRunner {
         
         createTask("Resolução Reclamação Urgente",
                   "Resolver reclamação urgente sobre qualidade de tubos fornecidos à empresa XYZ",
-                  Task.TaskPriority.URGENTE, Task.TaskStatus.EM_ANDAMENTO, anca, antonio, teamApoio,
+                  Task.TaskPriority.ALTA, Task.TaskStatus.EM_ANDAMENTO, anca, antonio, teamApoio,
                   now.plusDays(1), "reclamacao,qualidade", 6);
         
         // === TAREFAS FINANCEIRO (3) ===
@@ -455,10 +464,10 @@ public class TestDataInitializer implements CommandLineRunner {
         
         createTask("Negociação Financiamento",
                   "Negociar condições de financiamento bancário para expansão da fábrica",
-                  Task.TaskPriority.URGENTE, Task.TaskStatus.EM_ANDAMENTO, rui, rui, teamFinanceiro,
+                  Task.TaskPriority.ALTA, Task.TaskStatus.EM_ANDAMENTO, rui, rui, teamFinanceiro,
                   now.plusDays(7), "financiamento,banco", 10);
         
-        System.out.println("Criadas 30 tarefas da empresa de tubos de aço!");
+        System.out.println("Criadas 27 tarefas da empresa de tubos de aço!");
     }
     
     private Team findTeamByName(List<Team> teams, String name) {

@@ -726,6 +726,56 @@ public class TaskController {
         taskResponse.put("username", task.getUser().getUsername());
         taskResponse.put("isOverdue", task.isOverdue());
         taskResponse.put("isCompleted", task.isCompleted());
+        
+        // Adicionar informações completas do utilizador
+        Map<String, Object> userInfo = new HashMap<>();
+        User user = task.getUser();
+        userInfo.put("id", user.getId());
+        userInfo.put("username", user.getUsername());
+        userInfo.put("fullName", user.getFullName());
+        userInfo.put("email", user.getEmail());
+        userInfo.put("displayName", user.getDisplayName());
+        userInfo.put("role", user.getRole().name());
+        taskResponse.put("user", userInfo);
+        
+        // Adicionar informações da equipa atribuída
+        if (task.getAssignedTeam() != null) {
+            Map<String, Object> teamInfo = new HashMap<>();
+            Team team = task.getAssignedTeam();
+            teamInfo.put("id", team.getId());
+            teamInfo.put("name", team.getName());
+            teamInfo.put("description", team.getDescription());
+            teamInfo.put("active", team.getActive());
+            taskResponse.put("assignedTeam", teamInfo);
+        }
+        
+        // Adicionar informações do criador
+        if (task.getCreatedBy() != null) {
+            Map<String, Object> createdByInfo = new HashMap<>();
+            User createdBy = task.getCreatedBy();
+            createdByInfo.put("id", createdBy.getId());
+            createdByInfo.put("username", createdBy.getUsername());
+            createdByInfo.put("fullName", createdBy.getFullName());
+            createdByInfo.put("displayName", createdBy.getDisplayName());
+            taskResponse.put("createdBy", createdByInfo);
+        }
+        
+        // Adicionar informação de atribuição formatada
+        StringBuilder assignmentInfo = new StringBuilder();
+        if (task.getUser() != null) {
+            assignmentInfo.append("Atribuída a: ").append(task.getUser().getDisplayName());
+        }
+        if (task.getAssignedTeam() != null) {
+            if (assignmentInfo.length() > 0) {
+                assignmentInfo.append(" | ");
+            }
+            assignmentInfo.append("Equipa: ").append(task.getAssignedTeam().getName());
+        }
+        if (assignmentInfo.length() == 0) {
+            assignmentInfo.append("Não atribuída");
+        }
+        taskResponse.put("assignmentInfo", assignmentInfo.toString());
+        
         return taskResponse;
     }
 
@@ -1149,6 +1199,101 @@ public class TaskController {
 
         public void setTeamId(Long teamId) {
             this.teamId = teamId;
+        }
+    }
+
+    // ======================== ARQUIVO DE TAREFAS ========================
+    
+    /**
+     * Arquiva uma tarefa concluída.
+     * Move a tarefa para o arquivo, removendo-a da vista principal.
+     * 
+     * @param id ID da tarefa a ser arquivada
+     * @return ResponseEntity com o resultado da operação
+     */
+    @PostMapping("/{id}/archive")
+    public ResponseEntity<?> archiveTask(@PathVariable Long id) {
+        try {
+            Optional<Task> taskOpt = taskRepository.findById(id);
+            if (!taskOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Task task = taskOpt.get();
+            
+            // Verificar se a tarefa está concluída
+            if (!TaskStatus.CONCLUIDA.equals(task.getStatus())) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("error", "Apenas tarefas concluídas podem ser arquivadas");
+                error.put("currentStatus", task.getStatus());
+                return ResponseEntity.badRequest().body(error);
+            }
+            
+            // Arquivar a tarefa
+            task.setArchived(true);
+            task.setUpdatedAt(LocalDateTime.now());
+            taskRepository.save(task);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Tarefa arquivada com sucesso");
+            response.put("taskId", id);
+            response.put("title", task.getTitle());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Erro ao arquivar tarefa: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+    
+    /**
+     * Desarquiva uma tarefa.
+     * Remove a tarefa do arquivo, tornando-a visível na vista principal.
+     * 
+     * @param id ID da tarefa a ser desarquivada
+     * @return ResponseEntity com o resultado da operação
+     */
+    @PostMapping("/{id}/unarchive")
+    public ResponseEntity<?> unarchiveTask(@PathVariable Long id) {
+        try {
+            Optional<Task> taskOpt = taskRepository.findById(id);
+            if (!taskOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Task task = taskOpt.get();
+            task.setArchived(false);
+            task.setUpdatedAt(LocalDateTime.now());
+            taskRepository.save(task);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Tarefa desarquivada com sucesso");
+            response.put("taskId", id);
+            response.put("title", task.getTitle());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Erro ao desarquivar tarefa: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+    
+    /**
+     * Lista todas as tarefas arquivadas.
+     * 
+     * @return ResponseEntity com a lista de tarefas arquivadas
+     */
+    @GetMapping("/archived")
+    public ResponseEntity<List<Task>> getArchivedTasks() {
+        try {
+            List<Task> archivedTasks = taskRepository.findByArchivedTrueOrderByCompletedAtDesc();
+            return ResponseEntity.ok(archivedTasks);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
         }
     }
 }

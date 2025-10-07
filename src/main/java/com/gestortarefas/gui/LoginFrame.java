@@ -8,7 +8,6 @@ import com.gestortarefas.model.UserRole;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.net.http.HttpResponse;
 import java.util.HashMap;
 import java.util.Map;

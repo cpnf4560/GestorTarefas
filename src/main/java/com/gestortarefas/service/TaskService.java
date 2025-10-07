@@ -422,9 +422,10 @@ public class TaskService {
         LocalDateTime threeDaysAgo = LocalDateTime.now().minusDays(3);
         List<Task> allCompleted = taskRepository.findByUserAndStatus(user, TaskStatus.CONCLUIDA);
         
-        // Filtrar apenas tarefas concluídas nos últimos 3 dias
+        // Filtrar apenas tarefas concluídas nos últimos 3 dias e não arquivadas
         return allCompleted.stream()
             .filter(task -> task.getCompletedAt() != null && task.getCompletedAt().isAfter(threeDaysAgo))
+            .filter(task -> !Boolean.TRUE.equals(task.getArchived())) // Excluir tarefas arquivadas
             .collect(java.util.stream.Collectors.toList());
     }
 

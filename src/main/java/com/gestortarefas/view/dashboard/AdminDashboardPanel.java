@@ -1269,8 +1269,15 @@ public class AdminDashboardPanel extends DashboardBasePanel {
      */
     @Override
     protected void showTaskDetails(TaskItem task) {
-        // Criar diálogo personalizado para admin com opção de comentários
-        String[] options = {"💬 Ver Comentários", "📋 Detalhes", "Fechar"};
+        // Verificar se a tarefa está concluída para mostrar opção de arquivar
+        boolean isCompleted = "CONCLUIDA".equalsIgnoreCase(task.getStatus());
+        
+        String[] options;
+        if (isCompleted) {
+            options = new String[]{"💬 Ver Comentários", "📋 Detalhes", "📦 Arquivar", "Fechar"};
+        } else {
+            options = new String[]{"💬 Ver Comentários", "📋 Detalhes", "Fechar"};
+        }
         
         int choice = JOptionPane.showOptionDialog(this, 
             String.format("Tarefa: %s\n\nEscolha uma ação:", task.getTitle()),
@@ -1281,14 +1288,68 @@ public class AdminDashboardPanel extends DashboardBasePanel {
             options,
             options[0]);
         
-        switch (choice) {
-            case 0: // Ver Comentários
-                showTaskComments(task);
-                break;
-            case 1: // Detalhes básicos
-                super.showTaskDetails(task);
-                break;
-            // Caso 2 ou qualquer outro: Fechar (não faz nada)
+        if (isCompleted) {
+            switch (choice) {
+                case 0: // Ver Comentários
+                    showTaskComments(task);
+                    break;
+                case 1: // Detalhes básicos
+                    super.showTaskDetails(task);
+                    break;
+                case 2: // Arquivar
+                    archiveTask(task);
+                    break;
+                // Caso 3 ou qualquer outro: Fechar (não faz nada)
+            }
+        } else {
+            switch (choice) {
+                case 0: // Ver Comentários
+                    showTaskComments(task);
+                    break;
+                case 1: // Detalhes básicos
+                    super.showTaskDetails(task);
+                    break;
+                // Caso 2 ou qualquer outro: Fechar (não faz nada)
+            }
+        }
+    }
+    
+    /**
+     * Arquiva uma tarefa concluída
+     */
+    private void archiveTask(TaskItem task) {
+        int confirm = JOptionPane.showConfirmDialog(this,
+            "Tem certeza que deseja arquivar a tarefa:\n\"" + task.getTitle() + "\"?\n\n" +
+            "A tarefa será removida da dashboard mas ficará disponível no separador Tarefas.",
+            "Confirmar Arquivo",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE);
+        
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                com.gestortarefas.util.RestApiClient apiClient = new com.gestortarefas.util.RestApiClient();
+                boolean success = apiClient.archiveTask(task.getId(), currentUserId);
+                
+                if (success) {
+                    JOptionPane.showMessageDialog(this,
+                        "Tarefa arquivada com sucesso!",
+                        "Sucesso",
+                        JOptionPane.INFORMATION_MESSAGE);
+                    // Recarregar dashboard para remover a tarefa da lista
+                    loadAdminData();
+                } else {
+                    JOptionPane.showMessageDialog(this,
+                        "Erro ao arquivar a tarefa. Tente novamente.",
+                        "Erro",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(this,
+                    "Erro ao arquivar a tarefa: " + e.getMessage(),
+                    "Erro",
+                    JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
     

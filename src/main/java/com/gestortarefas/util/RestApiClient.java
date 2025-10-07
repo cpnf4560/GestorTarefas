@@ -717,4 +717,24 @@ public class RestApiClient {
             return errorResponse;
         }
     }
+    
+    /**
+     * Arquiva uma tarefa concluída
+     */
+    public boolean archiveTask(Long taskId, Long userId) {
+        try {
+            String url = BASE_URL + "/tasks/" + taskId + "/archive";
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            // Criar payload vazio (o endpoint não requer payload)
+            HttpEntity<String> entity = new HttpEntity<>("{}", headers);
+            
+            ResponseEntity<?> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
+            return response.getStatusCode().is2xxSuccessful();
+        } catch (Exception e) {
+            System.err.println("Erro ao arquivar tarefa: " + e.getMessage());
+            return false;
+        }
+    }
 }
