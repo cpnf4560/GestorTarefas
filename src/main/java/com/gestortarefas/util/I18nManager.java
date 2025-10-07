@@ -28,7 +28,7 @@ public class I18nManager {
         put("reports", "Relatórios");
         put("settings", "Definições");
         put("logout", "Sair");
-        put("exit", "Sair da Aplicação");
+        put("exit", "Sair");
         
         // Botões/Ações
         put("add", "Adicionar");
