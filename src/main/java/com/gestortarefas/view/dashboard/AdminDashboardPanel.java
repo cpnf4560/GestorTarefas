@@ -41,6 +41,16 @@ public class AdminDashboardPanel extends DashboardBasePanel {
     private JComboBox<String> sortByCombo;
     private JComboBox<String> sortDirectionCombo;
     
+    // Labels para estatísticas globais
+    private JLabel totalUsersLabel;
+    private JLabel totalTeamsLabel;
+    private JLabel totalTasksLabel;
+    private JLabel activeTasksLabel;
+    private JLabel completedTasksLabel;
+    private JLabel overdueTasksLabel;
+    private JLabel systemUptimeLabel;
+    private JLabel avgCompletionLabel;
+    
     public AdminDashboardPanel(Long adminId) {
         super(adminId);
         initializeAdminComponents();
@@ -116,15 +126,15 @@ public class AdminDashboardPanel extends DashboardBasePanel {
         globalStatsPanel.setBorder(BorderFactory.createTitledBorder("Estatísticas Globais do Sistema"));
         globalStatsPanel.setPreferredSize(new Dimension(0, 120));
         
-        // Labels para estatísticas
-        JLabel totalUsersLabel = new JLabel("Total Utilizadores: 0", SwingConstants.CENTER);
-        JLabel totalTeamsLabel = new JLabel("Total Equipas: 0", SwingConstants.CENTER);
-        JLabel totalTasksLabel = new JLabel("Total Tarefas: 0", SwingConstants.CENTER);
-        JLabel activeTasksLabel = new JLabel("Tarefas Ativas: 0", SwingConstants.CENTER);
-        JLabel completedTasksLabel = new JLabel("Tarefas Concluídas: 0", SwingConstants.CENTER);
-        JLabel overdueTasksLabel = new JLabel("Tarefas Atrasadas: 0", SwingConstants.CENTER);
-        JLabel systemUptimeLabel = new JLabel("Tempo Ativo: N/A", SwingConstants.CENTER);
-        JLabel avgCompletionLabel = new JLabel("Taxa Média: 0%", SwingConstants.CENTER);
+        // Inicializar labels como instance variables
+        totalUsersLabel = new JLabel("Total Utilizadores: 0", SwingConstants.CENTER);
+        totalTeamsLabel = new JLabel("Total Equipas: 0", SwingConstants.CENTER);
+        totalTasksLabel = new JLabel("Total Tarefas: 0", SwingConstants.CENTER);
+        activeTasksLabel = new JLabel("Tarefas Ativas: 0", SwingConstants.CENTER);
+        completedTasksLabel = new JLabel("Tarefas Concluídas: 0", SwingConstants.CENTER);
+        overdueTasksLabel = new JLabel("Tarefas Atrasadas: 0", SwingConstants.CENTER);
+        systemUptimeLabel = new JLabel("Tempo Ativo: N/A", SwingConstants.CENTER);
+        avgCompletionLabel = new JLabel("Taxa Média: 0%", SwingConstants.CENTER);
         
         globalStatsPanel.add(totalUsersLabel);
         globalStatsPanel.add(totalTeamsLabel);
@@ -589,8 +599,62 @@ public class AdminDashboardPanel extends DashboardBasePanel {
     
     private void loadAdminData() {
         refreshDashboard();
+        loadGlobalStatistics();
         loadAllUsers();
         loadAllTeams();
+    }
+    
+    /**
+     * Carrega estatísticas globais do sistema
+     */
+    private void loadGlobalStatistics() {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                com.gestortarefas.util.RestApiClient apiClient = new com.gestortarefas.util.RestApiClient();
+                Map<String, Object> dashboard = apiClient.getAdminDashboard(currentUserId);
+                
+                if (dashboard != null) {
+                    // Estatísticas de tarefas
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> taskStats = (Map<String, Object>) dashboard.get("taskStats");
+                    if (taskStats != null) {
+                        Integer total = getIntValue(taskStats, "total");
+                        Integer active = getIntValue(taskStats, "active");
+                        Integer completed = getIntValue(taskStats, "completed");
+                        Integer overdue = getIntValue(taskStats, "overdue");
+                        Double completionRate = getDoubleValue(taskStats, "completionRate");
+                        
+                        totalTasksLabel.setText("Total Tarefas: " + total);
+                        activeTasksLabel.setText("Tarefas Ativas: " + active);
+                        completedTasksLabel.setText("Tarefas Concluídas: " + completed);
+                        overdueTasksLabel.setText("Tarefas Atrasadas: " + overdue);
+                        avgCompletionLabel.setText(String.format("Taxa Média: %.1f%%", completionRate));
+                    }
+                    
+                    // Estatísticas de utilizadores
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> userStats = (Map<String, Object>) dashboard.get("userStats");
+                    if (userStats != null) {
+                        Integer totalUsers = getIntValue(userStats, "totalUsers");
+                        totalUsersLabel.setText("Total Utilizadores: " + totalUsers);
+                    }
+                    
+                    // Estatísticas de equipas
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> teamStats = (Map<String, Object>) dashboard.get("teamStatsGlobal");
+                    if (teamStats != null) {
+                        Integer totalTeams = getIntValue(teamStats, "totalTeams");
+                        totalTeamsLabel.setText("Total Equipas: " + totalTeams);
+                    }
+                    
+                    // Tempo ativo do sistema (placeholder - pode ser implementado futuramente)
+                    systemUptimeLabel.setText("Tempo Ativo: Sistema OK");
+                }
+            } catch (Exception e) {
+                System.err.println("Erro ao carregar estatísticas globais: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
     }
     
     private void loadAllUsers() {

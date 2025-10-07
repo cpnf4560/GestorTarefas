@@ -354,6 +354,14 @@ public class DashboardBasePanel extends JPanel {
         return 0;
     }
     
+    protected double getDoubleValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        }
+        return 0.0;
+    }
+    
     private void clearAllLists() {
         pendingTableModel.setTasks(new java.util.ArrayList<>());
         todayTableModel.setTasks(new java.util.ArrayList<>());
