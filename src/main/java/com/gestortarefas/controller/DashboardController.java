@@ -4,6 +4,7 @@ import com.gestortarefas.model.Task;
 import com.gestortarefas.model.Team;
 import com.gestortarefas.model.User;
 import com.gestortarefas.repository.TaskCommentReadRepository;
+import com.gestortarefas.repository.TaskCommentRepository;
 import com.gestortarefas.service.TaskService;
 import com.gestortarefas.service.TeamService;
 import com.gestortarefas.service.UserService;
@@ -35,6 +36,9 @@ public class DashboardController {
 
     @Autowired
     private TaskCommentReadRepository taskCommentReadRepository;
+
+    @Autowired
+    private TaskCommentRepository taskCommentRepository;
 
     /**
      * Dashboard do Funcionário - 4 colunas de tarefas
@@ -330,6 +334,10 @@ public class DashboardController {
             // Contar comentários não lidos
             long unreadComments = taskCommentReadRepository.countUnreadCommentsByTaskAndUser(task.getId(), userId);
             taskMap.put("unreadComments", unreadComments);
+            
+            // Contar total de comentários
+            long totalComments = taskCommentRepository.countByTaskId(task.getId());
+            taskMap.put("totalComments", totalComments);
             
             // Informação completa do utilizador
             if (task.getUser() != null) {

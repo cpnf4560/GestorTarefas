@@ -114,6 +114,7 @@ public class Task {
         PENDENTE("Pendente"),
         EM_ANDAMENTO("Em Andamento"),
         CONCLUIDA("Concluída"),
+        FINALIZADO("Finalizado"),
         CANCELADA("Cancelada");
 
         private final String displayName;
@@ -176,9 +177,10 @@ public class Task {
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();
+        // Preserve completedAt for FINALIZADO as it represents archived/completed tasks
         if (this.status == TaskStatus.CONCLUIDA && this.completedAt == null) {
             this.completedAt = LocalDateTime.now();
-        } else if (this.status != TaskStatus.CONCLUIDA) {
+        } else if (this.status != TaskStatus.CONCLUIDA && this.status != TaskStatus.FINALIZADO) {
             this.completedAt = null;
         }
     }
@@ -214,9 +216,11 @@ public class Task {
 
     public void setStatus(TaskStatus status) {
         this.status = status;
+        // When marking as CONCLUIDA, set completedAt if absent. When marking as FINALIZADO
+        // (archived), keep completedAt as it represents a previously completed task.
         if (status == TaskStatus.CONCLUIDA && this.completedAt == null) {
             this.completedAt = LocalDateTime.now();
-        } else if (status != TaskStatus.CONCLUIDA) {
+        } else if (status != TaskStatus.CONCLUIDA && status != TaskStatus.FINALIZADO) {
             this.completedAt = null;
         }
         this.updatedAt = LocalDateTime.now();
@@ -336,7 +340,8 @@ public class Task {
 
     // Métodos auxiliares
     public boolean isCompleted() {
-        return status == TaskStatus.CONCLUIDA;
+        // Consider FINALIZADO as completed for business logic (not shown in active lists)
+        return status == TaskStatus.CONCLUIDA || status == TaskStatus.FINALIZADO;
     }
 
     public boolean isPending() {

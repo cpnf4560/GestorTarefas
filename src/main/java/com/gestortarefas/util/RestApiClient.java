@@ -82,8 +82,11 @@ public class RestApiClient {
     public Map<String, Object> getAdminDashboard(Long userId) {
         try {
             String url = BASE_URL + "/dashboard/admin/" + userId;
+            System.out.println("RestApiClient: Calling " + url);
             ResponseEntity<?> response = restTemplate.getForEntity(url, Map.class);
-            return (Map<String, Object>) response.getBody();
+            Map<String, Object> result = (Map<String, Object>) response.getBody();
+            System.out.println("RestApiClient: Response received, completed tasks: " + ((List<?>) result.get("completed")).size());
+            return result;
         } catch (Exception e) {
             System.err.println("Erro ao buscar dashboard do administrador: " + e.getMessage());
             return null;

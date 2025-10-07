@@ -407,7 +407,39 @@ public class DashboardBasePanel extends JPanel {
                 taskItems.add(item);
             }
         }
+        
+        // Encontrar a tabela correspondente ao modelo para preservar ordenação
+        JTable correspondingTable = getTableForModel(tableModel);
+        Integer lastSortColumn = null;
+        Boolean lastSortAscending = null;
+        
+        if (correspondingTable != null) {
+            lastSortColumn = (Integer) correspondingTable.getClientProperty("lastSortColumn");
+            lastSortAscending = (Boolean) correspondingTable.getClientProperty("lastSortAscending");
+        }
+        
+        // Atualizar dados
         tableModel.setTasks(taskItems);
+        
+        // Reaplicar ordenação se existia
+        if (correspondingTable != null && lastSortColumn != null && lastSortAscending != null) {
+            // Restaurar propriedades de ordenação
+            correspondingTable.putClientProperty("lastSortColumn", lastSortColumn);
+            correspondingTable.putClientProperty("lastSortAscending", lastSortAscending);
+            // Reaplicar ordenação
+            sortTableByColumn(correspondingTable, lastSortColumn);
+        }
+    }
+    
+    /**
+     * Encontra a JTable correspondente ao modelo fornecido
+     */
+    private JTable getTableForModel(TaskTableModel model) {
+        if (pendingTableModel == model) return pendingTable;
+        if (todayTableModel == model) return todayTable;
+        if (overdueTableModel == model) return overdueTable;
+        if (completedTableModel == model) return completedTable;
+        return null;
     }
     
     @SuppressWarnings("unchecked")
@@ -550,6 +582,7 @@ public class DashboardBasePanel extends JPanel {
         private final String assignedTeamName;
         private final String dueDate;
         private final int unreadComments;
+        private final int totalComments;
         
         public TaskItem(Map<String, Object> taskData) {
             this.id = Long.valueOf(taskData.get("id").toString());
@@ -575,6 +608,10 @@ public class DashboardBasePanel extends JPanel {
             // Carregar contagem de comentários não lidos
             Object unreadObj = taskData.get("unreadComments");
             this.unreadComments = (unreadObj != null) ? ((Number) unreadObj).intValue() : 0;
+            
+            // Carregar contagem total de comentários
+            Object totalObj = taskData.get("totalComments");
+            this.totalComments = (totalObj != null) ? ((Number) totalObj).intValue() : 0;
         }
         
         public Long getId() { return id; }
@@ -588,6 +625,7 @@ public class DashboardBasePanel extends JPanel {
         public String getAssignedTeamName() { return assignedTeamName; }
         public String getDueDate() { return dueDate; }
         public int getUnreadComments() { return unreadComments; }
+        public int getTotalComments() { return totalComments; }
         
         @Override
         public String toString() {
@@ -1021,10 +1059,27 @@ public class DashboardBasePanel extends JPanel {
                     } else if (!isSelected) {
                         setBackground(Color.WHITE);
                     }
-                } else if (column == 3 && task.getUnreadComments() > 0) {
-                    // Coluna "Atribuído a" com badge de comentários não lidos
+                } else if (column == 3 && task.getTotalComments() > 0) {
+                    // Coluna "Atribuído a" com badge de comentários
                     String assignmentText = value != null ? value.toString() : "";
-                    setText("<html>" + assignmentText + " <span style='background-color: #dc3545; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: bold;'>" + task.getUnreadComments() + "</span></html>");
+                    
+                    // Sistema de cores: vermelha para não lidos, preta para lidos
+                    String badgeColor, textColor;
+                    int badgeCount;
+                    
+                    if (task.getUnreadComments() > 0) {
+                        // Comentários não lidos - badge vermelha
+                        badgeColor = "#dc3545";
+                        textColor = "white";
+                        badgeCount = task.getUnreadComments();
+                    } else {
+                        // Todos comentários lidos - badge preta/cinza escura
+                        badgeColor = "#343a40";
+                        textColor = "white";
+                        badgeCount = task.getTotalComments();
+                    }
+                    
+                    setText("<html>" + assignmentText + " <span style='background-color: " + badgeColor + "; color: " + textColor + "; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: bold;'>" + badgeCount + "</span></html>");
                     if (!isSelected) setBackground(Color.WHITE);
                 } else {
                     setText(value != null ? value.toString() : "");

@@ -1193,6 +1193,56 @@ public class ManagerDashboardPanel extends DashboardBasePanel {
         return null;
     }
     
+    /**
+     * Sobrescrever método para mostrar detalhes da tarefa com opções para gestor
+     */
+    @Override
+    protected void showTaskDetails(TaskItem task) {
+        String[] options = {"💬 Ver Comentários", "📋 Detalhes", "Fechar"};
+        
+        int choice = JOptionPane.showOptionDialog(this, 
+            String.format("Tarefa: %s\n\nEscolha uma ação:", task.getTitle()),
+            "Gerir Tarefa #" + task.getId(),
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            options,
+            options[0]);
+        
+        switch (choice) {
+            case 0: // Ver Comentários
+                showTaskComments(task);
+                break;
+            case 1: // Detalhes básicos
+                super.showTaskDetails(task);
+                break;
+            // Caso 2 ou qualquer outro: Fechar (não faz nada)
+        }
+    }
+    
+    /**
+     * Abre diálogo de comentários da tarefa
+     */
+    private void showTaskComments(TaskItem task) {
+        try {
+            Window parentWindow = SwingUtilities.getWindowAncestor(this);
+            TaskCommentsDialog commentsDialog = new TaskCommentsDialog(
+                parentWindow,
+                task.getId(),
+                task.getTitle(),
+                currentUserId,
+                apiClient
+            );
+            commentsDialog.setVisible(true);
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, 
+                "Erro ao abrir comentários da tarefa: " + e.getMessage(), 
+                "Erro", 
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
     // Classe interna para items do ComboBox de equipas
     private static class TeamComboItem {
         private final Long id;

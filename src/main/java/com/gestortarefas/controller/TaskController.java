@@ -1231,17 +1231,18 @@ public class TaskController {
             
             Task task = taskOpt.get();
             
-            // Verificar se a tarefa está concluída
-            if (!TaskStatus.CONCLUIDA.equals(task.getStatus())) {
+            // Verificar se a tarefa está concluída ou já finalizada
+            if (!(TaskStatus.CONCLUIDA.equals(task.getStatus()) || TaskStatus.FINALIZADO.equals(task.getStatus()))) {
                 Map<String, Object> error = new HashMap<>();
                 error.put("error", "Apenas tarefas concluídas podem ser arquivadas");
                 error.put("currentStatus", task.getStatus());
                 return ResponseEntity.badRequest().body(error);
             }
-            
-            // Arquivar a tarefa
+
+            // Marcar como arquivada e definir status FINALIZADO (idempotente)
             task.setArchived(true);
-            task.setUpdatedAt(LocalDateTime.now());
+            task.setStatus(Task.TaskStatus.FINALIZADO);
+            // Removido: task.setUpdatedAt(LocalDateTime.now()); - será feito pelo @PreUpdate
             taskRepository.save(task);
             
             Map<String, Object> response = new HashMap<>();

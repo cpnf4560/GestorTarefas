@@ -16,6 +16,8 @@ import java.util.Optional;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Arrays;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Serviço de negócio para gestão de tarefas.
@@ -33,6 +35,8 @@ import java.util.Arrays;
 @Service
 @Transactional // Todas as operações são transacionais
 public class TaskService {
+
+    private static final Logger logger = LoggerFactory.getLogger(TaskService.class);
 
     // Repositório para acesso aos dados das tarefas
     @Autowired
@@ -433,7 +437,7 @@ public class TaskService {
         // Filtrar apenas tarefas concluídas nos últimos 3 dias e não arquivadas
         return allCompleted.stream()
             .filter(task -> task.getCompletedAt() != null && task.getCompletedAt().isAfter(threeDaysAgo))
-            .filter(task -> !Boolean.TRUE.equals(task.getArchived())) // Excluir tarefas arquivadas
+            .filter(task -> task.getArchived() == null || !task.getArchived()) // Excluir tarefas arquivadas
             .collect(java.util.stream.Collectors.toList());
     }
 
@@ -482,9 +486,10 @@ public class TaskService {
         LocalDateTime threeDaysAgo = LocalDateTime.now().minusDays(3);
         List<Task> allCompleted = taskRepository.findByAssignedTeamAndStatus(team, TaskStatus.CONCLUIDA);
         
-        // Filtrar apenas tarefas concluídas nos últimos 3 dias
+        // Filtrar apenas tarefas concluídas nos últimos 3 dias e não arquivadas
         return allCompleted.stream()
             .filter(task -> task.getCompletedAt() != null && task.getCompletedAt().isAfter(threeDaysAgo))
+            .filter(task -> task.getArchived() == null || !task.getArchived()) // Excluir tarefas arquivadas
             .collect(java.util.stream.Collectors.toList());
     }
 
@@ -639,11 +644,9 @@ public class TaskService {
     @Transactional(readOnly = true)
     public List<Task> findCompletedTasksLast3Days() {
         LocalDateTime threeDaysAgo = LocalDateTime.now().minusDays(3);
-        List<Task> allCompleted = taskRepository.findByStatus(TaskStatus.CONCLUIDA);
-        
-        // Filtrar apenas tarefas concluídas nos últimos 3 dias
-        return allCompleted.stream()
-            .filter(task -> task.getCompletedAt() != null && task.getCompletedAt().isAfter(threeDaysAgo))
+        // findRecentlyCompletedTasks already excludes archived tasks
+        return taskRepository.findRecentlyCompletedTasks().stream()
+            .filter(t -> t.getCompletedAt() != null && t.getCompletedAt().isAfter(threeDaysAgo))
             .collect(java.util.stream.Collectors.toList());
     }
 

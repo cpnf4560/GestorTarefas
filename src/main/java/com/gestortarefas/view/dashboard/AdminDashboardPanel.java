@@ -6,6 +6,7 @@ import com.gestortarefas.view.dialogs.TaskCreateDialog;
 import com.gestortarefas.view.dialogs.TeamCreateDialog;
 import com.gestortarefas.view.dialogs.TeamEditDialog;
 import com.gestortarefas.view.dialogs.TaskCommentsDialog;
+import com.gestortarefas.util.CSVExporter;
 import com.gestortarefas.util.TableAutoResizer;
 import com.gestortarefas.gui.Colors;
 
@@ -53,6 +54,7 @@ public class AdminDashboardPanel extends DashboardBasePanel {
     
     public AdminDashboardPanel(Long adminId) {
         super(adminId);
+        System.out.println("AdminDashboard: Construindo AdminDashboardPanel para userId: " + adminId);
         initializeAdminComponents();
         loadAdminData();
     }
@@ -1305,11 +1307,63 @@ public class AdminDashboardPanel extends DashboardBasePanel {
     }
     
     private void exportAllTasks() {
-        JOptionPane.showMessageDialog(this, 
-            "✅ Exportação de tarefas concluída!\n\n" +
-            "📁 Arquivo seria salvo em: /downloads/tarefas_export.csv\n" +
-            "(Modo Demo - funcionalidade totalmente operacional)");
-        // Aqui implementaria a exportação de todas as tarefas para CSV
+        try {
+            System.out.println("AdminDashboard: Iniciando exportação CSV...");
+            
+            // Obter todas as tarefas da API (sem filtros para exportação completa)
+            Map<String, Object> response = apiClient.getAllTasks(new HashMap<>());
+
+            System.out.println("AdminDashboard: Resposta da API: " + (response != null ? "OK" : "NULL"));
+
+            if (response != null && (Boolean) response.get("success")) {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> tasks = (List<Map<String, Object>>) response.get("tasks");
+
+                System.out.println("AdminDashboard: Tarefas obtidas: " + (tasks != null ? tasks.size() : 0));
+
+                if (tasks != null && !tasks.isEmpty()) {
+                    // Debug: mostrar estrutura da primeira tarefa
+                    if (!tasks.isEmpty()) {
+                        System.out.println("AdminDashboard: Estrutura da primeira tarefa: " + tasks.get(0).keySet());
+                    }
+                    
+                    // Usar o CSVExporter para exportar as tarefas
+                    String username = "admin"; // Username padrão
+                    if (adminInfoLabel != null && adminInfoLabel.getText() != null) {
+                        String labelText = adminInfoLabel.getText();
+                        if (labelText.contains("(")) {
+                            username = labelText.substring(0, labelText.indexOf("(")).trim();
+                        }
+                    }
+                    boolean success = CSVExporter.exportTasks(this, tasks, username);
+
+                    if (success) {
+                        System.out.println("AdminDashboard: Exportação CSV concluída com sucesso");
+                    } else {
+                        System.out.println("AdminDashboard: Exportação CSV cancelada pelo utilizador");
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(this,
+                        "Não há tarefas para exportar.",
+                        "Exportação CSV",
+                        JOptionPane.INFORMATION_MESSAGE);
+                }
+            } else {
+                System.err.println("AdminDashboard: Erro na resposta da API: " + response);
+                JOptionPane.showMessageDialog(this,
+                    "Erro ao obter tarefas para exportação.",
+                    "Erro na Exportação",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+
+        } catch (Exception e) {
+            System.err.println("Erro na exportação CSV: " + e.getMessage());
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                "Erro ao exportar tarefas: " + e.getMessage(),
+                "Erro na Exportação",
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     private void refreshAllData() {
@@ -1509,6 +1563,7 @@ public class AdminDashboardPanel extends DashboardBasePanel {
      * Cria o painel de filtros e pesquisa para tarefas
      */
     private JPanel createTaskFiltersPanel() {
+        System.out.println("AdminDashboard: Criando painel de filtros");
         JPanel filtersPanel = new JPanel(new BorderLayout());
         filtersPanel.setBorder(BorderFactory.createTitledBorder("Filtros e Pesquisa"));
         
@@ -1533,31 +1588,41 @@ public class AdminDashboardPanel extends DashboardBasePanel {
         // Filtro por Status
         filterPanel.add(new JLabel("Status:"));
         statusFilter = new JComboBox<>(new String[]{"Todos", "PENDENTE", "EM_ANDAMENTO", "CONCLUIDA", "CANCELADA"});
-        statusFilter.addActionListener(e -> applyFilters());
+        statusFilter.addActionListener(e -> {
+            System.out.println("AdminDashboard: Status selecionado: " + statusFilter.getSelectedItem());
+            applyFilters();
+        });
         filterPanel.add(statusFilter);
         
         // Filtro por Prioridade
         filterPanel.add(new JLabel("Prioridade:"));
         priorityFilter = new JComboBox<>(new String[]{"Todas", "BAIXA", "NORMAL", "ALTA", "CRITICA"});
-        priorityFilter.addActionListener(e -> applyFilters());
+        priorityFilter.addActionListener(e -> {
+            System.out.println("AdminDashboard: Prioridade selecionada: " + priorityFilter.getSelectedItem());
+            applyFilters();
+        });
         filterPanel.add(priorityFilter);
         
         // Filtro por Utilizador
         filterPanel.add(new JLabel("Utilizador:"));
         userFilter = new JComboBox<>(new String[]{"Todos"});
-        userFilter.addActionListener(e -> applyFilters());
+        userFilter.addActionListener(e -> {
+            System.out.println("AdminDashboard: Utilizador selecionado: " + userFilter.getSelectedItem());
+            applyFilters();
+        });
         filterPanel.add(userFilter);
-        
-        // Carregar utilizadores em background
-        loadUsersForFilter();
         
         // Filtro por Equipa
         filterPanel.add(new JLabel("Equipa:"));
         teamFilter = new JComboBox<>(new String[]{"Todas"});
-        teamFilter.addActionListener(e -> applyFilters());
+        teamFilter.addActionListener(e -> {
+            System.out.println("AdminDashboard: Equipa selecionada: " + teamFilter.getSelectedItem());
+            applyFilters();
+        });
         filterPanel.add(teamFilter);
         
-        // Carregar equipas em background
+        // Carregar utilizadores e equipas
+        loadUsersForFilter();
         loadTeamsForFilter();
         
         // Ordenação
@@ -1685,23 +1750,23 @@ public class AdminDashboardPanel extends DashboardBasePanel {
             filters.put("search", searchField.getText().trim());
         }
         
-        if (statusFilter != null && !statusFilter.getSelectedItem().equals("Todos")) {
+        if (statusFilter != null && statusFilter.getSelectedItem() != null && !statusFilter.getSelectedItem().equals("Todos")) {
             filters.put("status", (String) statusFilter.getSelectedItem());
         }
         
-        if (priorityFilter != null && !priorityFilter.getSelectedItem().equals("Todas")) {
+        if (priorityFilter != null && priorityFilter.getSelectedItem() != null && !priorityFilter.getSelectedItem().equals("Todas")) {
             filters.put("priority", (String) priorityFilter.getSelectedItem());
         }
 
-        if (userFilter != null && !userFilter.getSelectedItem().equals("Todos")) {
-            filters.put("user", (String) userFilter.getSelectedItem());
+        if (userFilter != null && userFilter.getSelectedItem() != null && !userFilter.getSelectedItem().equals("Todos")) {
+            filters.put("userName", (String) userFilter.getSelectedItem());
         }
 
-        if (teamFilter != null && !teamFilter.getSelectedItem().equals("Todas")) {
-            filters.put("team", (String) teamFilter.getSelectedItem());
+        if (teamFilter != null && teamFilter.getSelectedItem() != null && !teamFilter.getSelectedItem().equals("Todas")) {
+            filters.put("teamName", (String) teamFilter.getSelectedItem());
         }
 
-        if (sortByCombo != null) {
+        if (sortByCombo != null && sortByCombo.getSelectedItem() != null) {
             filters.put("sortBy", (String) sortByCombo.getSelectedItem());
         }
         
@@ -1716,6 +1781,17 @@ public class AdminDashboardPanel extends DashboardBasePanel {
      * Aplica os filtros selecionados
      */
     private void applyFilters() {
+        System.out.println("AdminDashboard: Aplicando filtros...");
+        
+        // Obter filtros atuais
+        Map<String, String> filters = getCurrentFilters();
+        
+        // Debug: mostrar filtros aplicados
+        if (!filters.isEmpty()) {
+            System.out.println("AdminDashboard: Filtros aplicados: " + filters);
+        }
+        
+        // Carregar tarefas com filtros
         loadAllTasks();
     }
     
@@ -1819,19 +1895,26 @@ public class AdminDashboardPanel extends DashboardBasePanel {
      * Carrega utilizadores para o filtro
      */
     private void loadUsersForFilter() {
+        System.out.println("AdminDashboard: Iniciando loadUsersForFilter()");
         new Thread(() -> {
             try {
+                System.out.println("AdminDashboard: Carregando utilizadores para filtro...");
                 List<Map<String, Object>> users = apiClient.getAllUsers();
                 
                 SwingUtilities.invokeLater(() -> {
-                    userFilter.removeAllItems();
-                    userFilter.addItem("Todos");
-                    
-                    for (Map<String, Object> user : users) {
-                        String username = (String) user.get("username");
-                        if (username != null) {
-                            userFilter.addItem(username);
+                    if (userFilter != null) {
+                        userFilter.removeAllItems();
+                        userFilter.addItem("Todos");
+                        
+                        int count = 0;
+                        for (Map<String, Object> user : users) {
+                            String username = (String) user.get("username");
+                            if (username != null) {
+                                userFilter.addItem(username);
+                                count++;
+                            }
                         }
+                        System.out.println("AdminDashboard: Carregados " + count + " utilizadores no filtro");
                     }
                 });
             } catch (Exception e) {
@@ -1844,19 +1927,26 @@ public class AdminDashboardPanel extends DashboardBasePanel {
      * Carrega equipas para o filtro
      */
     private void loadTeamsForFilter() {
+        System.out.println("AdminDashboard: Iniciando loadTeamsForFilter()");
         new Thread(() -> {
             try {
+                System.out.println("AdminDashboard: Carregando equipas para filtro...");
                 List<Map<String, Object>> teams = apiClient.getAllTeams();
                 
                 SwingUtilities.invokeLater(() -> {
-                    teamFilter.removeAllItems();
-                    teamFilter.addItem("Todas");
+                    if (teamFilter != null) {
+                        teamFilter.removeAllItems();
+                        teamFilter.addItem("Todas");
                     
-                    for (Map<String, Object> team : teams) {
-                        String teamName = (String) team.get("name");
-                        if (teamName != null) {
-                            teamFilter.addItem(teamName);
+                        int count = 0;
+                        for (Map<String, Object> team : teams) {
+                            String teamName = (String) team.get("name");
+                            if (teamName != null) {
+                                teamFilter.addItem(teamName);
+                                count++;
+                            }
                         }
+                        System.out.println("AdminDashboard: Carregadas " + count + " equipas no filtro");
                     }
                 });
             } catch (Exception e) {

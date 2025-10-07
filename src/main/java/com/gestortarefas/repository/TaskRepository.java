@@ -69,26 +69,26 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     /**
      * Busca tarefas em atraso (data limite passou e não estão concluídas)
      */
-    @Query("SELECT t FROM Task t WHERE t.dueDate < :currentDate AND t.status != 'CONCLUIDA'")
-    List<Task> findOverdueTasks(@Param("currentDate") LocalDateTime currentDate);
+       @Query("SELECT t FROM Task t WHERE t.dueDate < :currentDate AND t.status NOT IN ('CONCLUIDA','FINALIZADO') AND (t.archived = false OR t.archived IS NULL)")
+       List<Task> findOverdueTasks(@Param("currentDate") LocalDateTime currentDate);
 
     /**
      * Busca tarefas em atraso de um utilizador específico
      */
-    @Query("SELECT t FROM Task t WHERE t.user = :user AND t.dueDate < :currentDate AND t.status != 'CONCLUIDA'")
-    List<Task> findOverdueTasksByUser(@Param("user") User user, @Param("currentDate") LocalDateTime currentDate);
+       @Query("SELECT t FROM Task t WHERE t.user = :user AND t.dueDate < :currentDate AND t.status NOT IN ('CONCLUIDA','FINALIZADO') AND (t.archived = false OR t.archived IS NULL)")
+       List<Task> findOverdueTasksByUser(@Param("user") User user, @Param("currentDate") LocalDateTime currentDate);
 
     /**
      * Busca tarefas com prazo próximo (próximos dias)
      */
-    @Query("SELECT t FROM Task t WHERE t.dueDate BETWEEN :startDate AND :endDate AND t.status != 'CONCLUIDA'")
-    List<Task> findTasksDueSoon(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+       @Query("SELECT t FROM Task t WHERE t.dueDate BETWEEN :startDate AND :endDate AND t.status NOT IN ('CONCLUIDA','FINALIZADO') AND (t.archived = false OR t.archived IS NULL)")
+       List<Task> findTasksDueSoon(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 
     /**
      * Busca tarefas recentemente concluídas
      */
-    @Query("SELECT t FROM Task t WHERE t.status = 'CONCLUIDA' ORDER BY t.completedAt DESC")
-    List<Task> findRecentlyCompletedTasks();
+       @Query("SELECT t FROM Task t WHERE t.status = 'CONCLUIDA' AND (t.archived = false OR t.archived IS NULL) ORDER BY t.completedAt DESC")
+       List<Task> findRecentlyCompletedTasks();
 
     /**
      * Conta tarefas por status para um utilizador
@@ -178,26 +178,26 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     /**
      * Busca tarefas com prazo hoje (exclui arquivadas)
      */
-    @Query("SELECT t FROM Task t WHERE CAST(t.dueDate AS DATE) = CAST(:today AS DATE) AND t.status != 'CONCLUIDA' AND (t.archived = false OR t.archived IS NULL)")
-    List<Task> findTasksDueToday(@Param("today") LocalDateTime today);
+       @Query("SELECT t FROM Task t WHERE CAST(t.dueDate AS DATE) = CAST(:today AS DATE) AND t.status NOT IN ('CONCLUIDA','FINALIZADO') AND (t.archived = false OR t.archived IS NULL)")
+       List<Task> findTasksDueToday(@Param("today") LocalDateTime today);
 
     /**
      * Busca tarefas com prazo hoje de um utilizador (exclui arquivadas)
      */
-    @Query("SELECT t FROM Task t WHERE t.user = :user AND CAST(t.dueDate AS DATE) = CAST(:today AS DATE) AND t.status != 'CONCLUIDA' AND (t.archived = false OR t.archived IS NULL)")
-    List<Task> findTasksDueTodayByUser(@Param("user") User user, @Param("today") LocalDateTime today);
+       @Query("SELECT t FROM Task t WHERE t.user = :user AND CAST(t.dueDate AS DATE) = CAST(:today AS DATE) AND t.status NOT IN ('CONCLUIDA','FINALIZADO') AND (t.archived = false OR t.archived IS NULL)")
+       List<Task> findTasksDueTodayByUser(@Param("user") User user, @Param("today") LocalDateTime today);
 
     /**
      * Busca tarefas com prazo hoje de uma equipa (exclui arquivadas)
      */
-    @Query("SELECT t FROM Task t WHERE t.assignedTeam = :team AND CAST(t.dueDate AS DATE) = CAST(:today AS DATE) AND t.status != 'CONCLUIDA' AND (t.archived = false OR t.archived IS NULL)")
-    List<Task> findTasksDueTodayByTeam(@Param("team") Team team, @Param("today") LocalDateTime today);
+       @Query("SELECT t FROM Task t WHERE t.assignedTeam = :team AND CAST(t.dueDate AS DATE) = CAST(:today AS DATE) AND t.status NOT IN ('CONCLUIDA','FINALIZADO') AND (t.archived = false OR t.archived IS NULL)")
+       List<Task> findTasksDueTodayByTeam(@Param("team") Team team, @Param("today") LocalDateTime today);
 
     /**
      * Busca tarefas em atraso de uma equipa
      */
-    @Query("SELECT t FROM Task t WHERE t.assignedTeam = :team AND t.dueDate < :currentDate AND t.status != 'CONCLUIDA'")
-    List<Task> findOverdueTasksByTeam(@Param("team") Team team, @Param("currentDate") LocalDateTime currentDate);
+       @Query("SELECT t FROM Task t WHERE t.assignedTeam = :team AND t.dueDate < :currentDate AND t.status NOT IN ('CONCLUIDA','FINALIZADO') AND (t.archived = false OR t.archived IS NULL)")
+       List<Task> findOverdueTasksByTeam(@Param("team") Team team, @Param("currentDate") LocalDateTime currentDate);
 
     /**
      * Conta tarefas por status para uma equipa
@@ -237,14 +237,14 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     /**
      * Top utilizadores por tarefas concluídas
      */
-    @Query("SELECT t.user, COUNT(t) FROM Task t WHERE t.status = 'CONCLUIDA' GROUP BY t.user ORDER BY COUNT(t) DESC")
-    List<Object[]> getTopUsersByCompletedTasks();
+       @Query("SELECT t.user, COUNT(t) FROM Task t WHERE t.status = 'CONCLUIDA' AND (t.archived = false OR t.archived IS NULL) GROUP BY t.user ORDER BY COUNT(t) DESC")
+       List<Object[]> getTopUsersByCompletedTasks();
 
     /**
      * Top equipas por tarefas concluídas
      */
-    @Query("SELECT t.assignedTeam, COUNT(t) FROM Task t WHERE t.status = 'CONCLUIDA' AND t.assignedTeam IS NOT NULL GROUP BY t.assignedTeam ORDER BY COUNT(t) DESC")
-    List<Object[]> getTopTeamsByCompletedTasks();
+       @Query("SELECT t.assignedTeam, COUNT(t) FROM Task t WHERE t.status = 'CONCLUIDA' AND (t.archived = false OR t.archived IS NULL) AND t.assignedTeam IS NOT NULL GROUP BY t.assignedTeam ORDER BY COUNT(t) DESC")
+       List<Object[]> getTopTeamsByCompletedTasks();
 
     /**
      * Busca tarefas arquivadas ordenadas por data de conclusão (mais recente primeiro)
