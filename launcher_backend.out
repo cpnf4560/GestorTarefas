@@ -1,0 +1,4 @@
+Starting backend... logs -> backend.log
+Waiting for http://localhost:8080/actuator/health ...
+Timeout waiting for http://localhost:8080/actuator/health
+Backend failed to start (check backend.log)

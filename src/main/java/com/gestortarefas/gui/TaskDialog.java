@@ -57,6 +57,10 @@ public class TaskDialog extends JDialog {
         
         System.out.println("TaskDialog: Loading task data for edit mode...");
         loadTaskData();
+        
+        // Aplicar permissões após configurar componentes
+        applyPermissions();
+        
         System.out.println("TaskDialog: Dialog fully initialized with assignment components");
     }
     
@@ -172,6 +176,40 @@ public class TaskDialog extends JDialog {
         loadUsersAndTeams();
         updateAssignmentControls();
         System.out.println("TaskDialog: Componentes de atribuição inicializados");
+    }
+
+    /**
+     * Aplicar restrições de permissões baseadas no perfil do utilizador
+     */
+    private void applyPermissions() {
+        if (currentUser == null) return;
+        
+        String profile = (String) currentUser.get("profile");
+        System.out.println("TaskDialog: Aplicando permissões para perfil: " + profile);
+        
+        // FUNCIONÁRIO só pode alterar status e adicionar comentários
+        // Não pode editar título, descrição, prioridade, data limite ou reatribuir
+        if ("FUNCIONARIO".equals(profile) && isEditMode) {
+            System.out.println("TaskDialog: Desabilitando campos de edição para FUNCIONARIO");
+            
+            // Desabilitar campos básicos (só pode alterar status)
+            titleField.setEnabled(false);
+            descriptionArea.setEnabled(false);
+            priorityCombo.setEnabled(false);
+            dateSpinner.setEnabled(false);
+            timeSpinner.setEnabled(false);
+            
+            // Desabilitar completamente os campos de atribuição
+            assignToUserRadio.setEnabled(false);
+            assignToTeamRadio.setEnabled(false);
+            userCombo.setEnabled(false);
+            teamCombo.setEnabled(false);
+            
+            // Status fica habilitado (única coisa que pode alterar além de comentários)
+            statusCombo.setEnabled(true);
+            
+            System.out.println("TaskDialog: Campos de atribuição desabilitados para FUNCIONARIO");
+        }
     }
 
     private void setupLayout() {

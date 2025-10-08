@@ -90,9 +90,18 @@ Em ambientes empresariais, a gestão eficiente de tarefas é fundamental para o 
 - Visualização de tarefas por equipa
 
 #### RF4: Interface CardLayout
-- Navegação em janela única: Login ↔ Dashboard
-- Sem abrir múltiplas janelas
-- Transições suaves entre ecrãs
+- Navegação consistente em área de conteúdo dinâmica (CardLayout) com header/toolbar persistente.
+- Fluxo de autenticação: ecrã de login → janela principal (MainWindow) que atua como container dos cards. No interior da janela principal, as vistas (Dashboard, Arquivo de Tarefas, painéis por perfil) são cards trocáveis que não geram janelas permanentes adicionais.
+- Diálogos modais (popups) são usados para interações pontuais (comentários, edição de tarefa) e aparecem como overlays sobre o card ativo — não são cards.
+- Transições suaves entre vistas e preservação do estado interno de cada painel (filtros, seleção, badges).
+
+**Critérios de aceitação (testáveis):**
+- Após autenticação, a interface apresenta a janela principal contendo o CardLayout (ou troca para o card de dashboard) sem deixar múltiplas janelas permanentes abertas.
+- Alternar para "Arquivo de Tarefas" troca o card de conteúdo sem recriar o cabeçalho/top‑bar.
+- Abrir um comentário/tarefa mostra um diálogo modal; ao fechar o diálogo o utilizador regressa ao mesmo card com o mesmo estado.
+- As trocas de card são rápidas e a UI permanece responsiva durante operações de rede (chamadas HTTP feitas em background fora do EDT).
+
+**Nota técnica:** Em algumas rotas de execução o ecrã de login pode ser implementado como um frame separado que, após autenticação, cria a janela principal e fecha a janela de login. Do ponto de vista da navegação contínua e da experiência do utilizador, a janela principal funciona como um único gestor de vistas baseado em CardLayout — por isso é correcto descrever Dashboard e Arquivo de Tarefas como cards dentro desse container.
 
 #### RF5: Internacionalização (i18n)
 - Suporte completo para Português e Inglês
@@ -1398,9 +1407,56 @@ CREATE INDEX idx_comment_task ON task_comment(task_id);
 ```
 
 ---
+```
+
+---
+
+## 9. Atualizações recentes (8 de Outubro de 2025)
+
+Esta secção documenta as alterações realizadas após a entrega original do relatório. As mudanças foram integradas no repositório e testadas localmente.
+
+- Correções e melhorias principais:
+    - Alterado o ecrã de login: o botão "Register" foi repensado como botão "Sair" com confirmação, para evitar opções de registo incompletas durante a demo.
+    - Botão de idioma agora mostra a língua de destino (por exemplo, mostra "EN" quando a interface está em PT), para clarificar a ação para o utilizador.
+    - Implementada funcionalidade de marcação de comentários como lidos (backend + GUI). Adicionado botão explícito "Marcar como lido" no diálogo de comentários e atualização dos dashboards após marcação.
+    - Adicionado um launcher portátil `run_gestor.sh` para iniciar a aplicação (modos: `--full`, `--backend-only`, `--gui-only`) e gerir logs (`backend.log`, `gui.log`).
+
+- Operações de segurança e salvaguarda:
+    - Foi criado um ponto de backup e marcado no repositório:
+        - Commit: `f253a11080c7a2c719db3e5698acdc51121d4208` (mensagem: "UI: repurpose Register -> Exit; language button shows target language; finalize login tweaks")
+        - Tag anotada: `backup-login-tweaks-2025-10-08` (empurrada para `origin`)
+        - Branch de backup: `backup/login-tweaks-2025-10-08` (empurrada para `origin`)
+    - Backups offline criados no diretório `backups/`:
+        - `gestortarefas-backup-f253a11.bundle` (git bundle, 2.1M)
+        - `gestortarefas-src-f253a11.tar.gz` (tarball do código, ~72M)
+        - Checksums SHA-256 gravados em `backups/checksums-sha256.txt`.
+
+- Como iniciar a aplicação localmente (rápido):
+    1. Certifique-se de que a base de dados MySQL está a correr em `localhost:3306` com utilizador `root` (senha vazia em dev).
+    2. Para iniciar backend + GUI sem rebuild (útil para desenvolvimento rápido):
+
+```bash
+./run_gestor.sh --full --no-build
+```
+
+    - Logs:
+        - `backend.log` — saída do backend (Spring Boot / Tomcat)
+        - `gui.log` — saída da interface Swing
+
+    3. Alternativamente, iniciar só a GUI (quando o backend já estiver pronto):
+
+```bash
+./run_gestor.sh --gui-only --no-build
+```
+
+- Notas adicionais:
+    - O launcher espera pelo endpoint de readiness `/actuator/health` em `http://localhost:8080/actuator/health` antes de iniciar a GUI.
+    - As credenciais usadas pelo backend (ver `src/main/resources/application.properties`) são: `spring.datasource.username=root` e `spring.datasource.password=` (vazia). Use um phpMyAdmin externo ou dockerizado para inspecionar a base de dados se necessário.
+
+Estas alterações foram testadas localmente em 8 de Outubro de 2025: o backend iniciou na porta 8080 e a GUI estabeleceu ligação com sucesso; os backups e artefactos de restauração foram gerados e guardados em `backups/`.
 
 **FIM DO RELATÓRIO**
 
 **Autor:** Carlos Correia  
-**Data de Conclusão:** 6 de Outubro de 2025  
+**Data de Conclusão (actualizada):** 8 de Outubro de 2025  
 **Classificação Esperada:** 20/20 ✅

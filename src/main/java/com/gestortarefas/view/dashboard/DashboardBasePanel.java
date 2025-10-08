@@ -6,14 +6,12 @@ import com.gestortarefas.gui.Colors;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 /**
  * Painel base para dashboards com layout de 4 colunas
@@ -25,12 +23,18 @@ public class DashboardBasePanel extends JPanel {
      */
     @SuppressWarnings("unchecked")
     private void sortTableByColumn(JTable table, int column) {
-        DefaultTableModel model = (DefaultTableModel) table.getModel();
+        // Verificar se o modelo é TaskTableModel
+        if (!(table.getModel() instanceof TaskTableModel)) {
+            System.out.println("DashboardBasePanel: Modelo da tabela não é TaskTableModel, ignorando ordenação");
+            return;
+        }
         
-        // Obter dados atuais
-        Vector data = model.getDataVector();
+        TaskTableModel model = (TaskTableModel) table.getModel();
         
-        if (data.isEmpty()) return;
+        // Obter tasks atuais
+        java.util.List<TaskItem> tasks = new java.util.ArrayList<>(model.tasks);
+        
+        if (tasks.isEmpty()) return;
         
         // Determinar direção de ordenação (alterna entre asc/desc)
         boolean ascending = true;
@@ -45,13 +49,10 @@ public class DashboardBasePanel extends JPanel {
         
         final boolean isAscending = ascending;
         
-        // Ordenar dados
-        Collections.sort(data, (v1, v2) -> {
-            Vector<Object> row1 = (Vector<Object>) v1;
-            Vector<Object> row2 = (Vector<Object>) v2;
-            
-            Object val1 = row1.get(column);
-            Object val2 = row2.get(column);
+        // Ordenar tasks baseado na coluna
+        Collections.sort(tasks, (t1, t2) -> {
+            Object val1 = getTaskValue(t1, column);
+            Object val2 = getTaskValue(t2, column);
             
             // Tratar valores nulos
             if (val1 == null && val2 == null) return 0;
@@ -60,22 +61,46 @@ public class DashboardBasePanel extends JPanel {
             
             // Comparar valores
             int result;
-            if (val1 instanceof Comparable && val2 instanceof Comparable) {
-                result = ((Comparable) val1).compareTo(val2);
+            @SuppressWarnings("rawtypes")
+            Comparable comp1 = (val1 instanceof Comparable) ? (Comparable) val1 : null;
+            @SuppressWarnings("rawtypes")
+            Comparable comp2 = (val2 instanceof Comparable) ? (Comparable) val2 : null;
+            
+            if (comp1 != null && comp2 != null) {
+                @SuppressWarnings("unchecked")
+                int compResult = comp1.compareTo(val2);
+                result = compResult;
             } else {
-                result = val1.toString().compareTo(val2.toString());
+                result = val1.toString().compareToIgnoreCase(val2.toString());
             }
             
             return isAscending ? result : -result;
         });
         
-        // Atualizar tabela
-        model.setRowCount(0);
-        for (Object rowObj : data) {
-            Vector<Object> row = (Vector<Object>) rowObj;
-            model.addRow(row);
+        // Atualizar modelo com tasks ordenadas
+        model.setTasks(tasks);
+    }
+    
+    /**
+     * Obtém o valor de uma tarefa para uma determinada coluna
+     */
+    private Object getTaskValue(TaskItem task, int column) {
+        switch (column) {
+            case 0: return task.getPriority(); // Prioridade
+            case 1: return task.getTitle(); // Título
+            case 2: return task.getDueDate(); // Data limite
+            case 3: // Atribuído a
+                String username = task.getUsername();
+                return (username != null && !username.isEmpty() && !username.equalsIgnoreCase("null")) 
+                    ? username : "Não atribuído";
+            case 4: // Equipa
+                return task.isAssignedToTeam() && task.getAssignedTeamName() != null
+                    ? task.getAssignedTeamName() : "-";
+            case 5: return task.getStatus(); // Status
+            default: return "";
         }
     }
+
     
     /**
      * Classe interna para representar os tipos de colunas
@@ -597,6 +622,7 @@ public class DashboardBasePanel extends JPanel {
             // Determinar se é tarefa de equipa ou individual
             Object assignedTeamObj = taskData.get("assignedTeam");
             if (assignedTeamObj instanceof Map) {
+                @SuppressWarnings("unchecked")
                 Map<String, Object> teamData = (Map<String, Object>) assignedTeamObj;
                 this.isAssignedToTeam = true;
                 this.assignedTeamName = (String) teamData.get("name");
