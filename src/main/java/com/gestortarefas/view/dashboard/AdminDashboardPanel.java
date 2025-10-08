@@ -881,8 +881,22 @@ public class AdminDashboardPanel extends DashboardBasePanel {
         int selectedRow = usersTable.getSelectedRow();
         if (selectedRow >= 0) {
             DefaultTableModel model = (DefaultTableModel) usersTable.getModel();
-            Long userId = (Long) model.getValueAt(selectedRow, 0);
-            String userName = (String) model.getValueAt(selectedRow, 1);
+            Object idObj = model.getValueAt(selectedRow, 0);
+            Long userId;
+            try {
+                if (idObj instanceof Number) {
+                    userId = ((Number) idObj).longValue();
+                } else {
+                    userId = Long.parseLong(idObj.toString());
+                }
+            } catch (Exception parseEx) {
+                JOptionPane.showMessageDialog(this,
+                    "ID do utilizador inválido: " + idObj,
+                    "Erro", JOptionPane.ERROR_MESSAGE);
+                System.err.println("AdminDashboardPanel: invalid user id in table: " + idObj);
+                return;
+            }
+            String userName = String.valueOf(model.getValueAt(selectedRow, 1));
             
             int result = JOptionPane.showConfirmDialog(this, 
                 "Tem certeza que deseja eliminar o utilizador '" + userName + "'?\n\n" +

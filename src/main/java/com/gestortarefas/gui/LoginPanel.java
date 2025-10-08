@@ -526,8 +526,14 @@ public class LoginPanel extends JPanel {
             btn.setForeground(backgroundColor.equals(new Color(255, 193, 7)) ? Color.BLACK : Color.WHITE);
             btn.setPreferredSize(new Dimension(280, 22));
             btn.addActionListener(e -> {
-                usernameField.setText(user[0]);
-                passwordField.setText(user[0] + "123");
+                // Caso especial: 'admin.correia' deve preencher com as credenciais fornecidas
+                if ("admin.correia".equals(user[0])) {
+                    usernameField.setText("carloscorreia");
+                    passwordField.setText("rzq7xgq8");
+                } else {
+                    usernameField.setText(user[0]);
+                    passwordField.setText(user[0] + "123");
+                }
             });
             panel.add(btn);
         }
@@ -549,8 +555,14 @@ public class LoginPanel extends JPanel {
             btn.setForeground(Color.WHITE);
             btn.setPreferredSize(new Dimension(180, 22));
             btn.addActionListener(e -> {
-                usernameField.setText(user[0]);
-                passwordField.setText(user[0] + "123");
+                // Caso especial para o botão do admin inicial
+                if ("admin.correia".equals(user[0])) {
+                    usernameField.setText("carloscorreia");
+                    passwordField.setText("rzq7xgq8");
+                } else {
+                    usernameField.setText(user[0]);
+                    passwordField.setText(user[0] + "123");
+                }
             });
             contentPanel.add(btn);
         }
